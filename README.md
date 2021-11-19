@@ -1,3 +1,15 @@
-`tree.out` 구조대로 데이터 이름을 재설정하신뒤 실행하시면 됩니다.
+### Dacon-gas
 
-tr, vl 데이터는 [AI Hub](https://aihub.or.kr/aidata/8054)의 '문서요약 텍스트', ts 데이터는 [데이콘](https://dacon.io/competitions/official/235829/data)에서 받으실 수 있습니다.
+Forked from:
+  - https://github.com/kh-kim/simple-ntc
+
+Keyword for useful method:
+  - bart for seq2seq
+  - from transformers import Trainer, TrainingArguments
+  - logging_dir arguments -> tensorboard
+
+Sites:
+  - https://huggingface.co/transformers/model_summary.html?highlight=pegasus
+  - https://velog.io/@jaehyeong/Paper-Review-PEGASUSPre-training-with-Extracted-Gap-sentences-for-Abstractive-Summarization
+  - https://huggingface.co/gogamza/kobart-summarization
+  - https://huggingface.co/upskyy/kobart-summarization-v3
