@@ -1,14 +1,9 @@
 data/
 ckpt/
-<<<<<<< HEAD
-
-논문자료 요약/
-도서자료 요약/
-.ipynb_checkpoints/
-
-=======
 venv/
+
+dacon_submit_api-0.0.4-py3-none-any.*
+token
 
 **/.ipynb_checkpoints
 **/__pycache__
->>>>>>> 754efef1dc0480acf2665e55d1a71fec32c8f366

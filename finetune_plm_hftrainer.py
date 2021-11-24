@@ -1,19 +1,18 @@
 import torch
 
-from transformers import BertTokenizerFast
-from transformers import BertForSequenceClassification, AlbertForSequenceClassification
 from transformers import Trainer
 from transformers import TrainingArguments
 
-from transformers import PegasusForConditionalGeneration, PegasusTokenizer
+from transformers import PreTrainedTokenizerFast, BartForConditionalGeneration
 
 import argparse
-import random
+import pprint
 
+from pathlib import Path
 from sklearn.metrics import accuracy_score
 
-from src.bert_dataset import TextClassificationCollator
-from src.bert_dataset import TextClassificationDataset
+from src.bert_dataset import TextAbstractSummarizationCollator
+from src.bert_dataset import TextAbstractSummarizationDataset
 from src.utils import read_text
 
 
@@ -21,82 +20,149 @@ def define_argparser():
     p = argparse.ArgumentParser()
 
     p.add_argument(
-        "--model_fn", 
-        required=True)
-    p.add_argument("--train_fn", required=True)
+        "--model_fpath", 
+        required=True,
+    )
+    p.add_argument(
+        "--data",
+        type=str,
+        default="data",
+    )
+    p.add_argument(
+        "--inp_suffix",
+        type=str,
+        default="if",
+    )
+    p.add_argument(
+        "--tar_suffix",
+        type=str,
+        default="of",
+    )
+
     ## Recommended model list:
     ## - ...
-    p.add_argument("--pretrained_model_name", type=str, default="google/pegasus-large")
-    p.add_argument("--use_albert", action="store_true")
-
-    p.add_argument("--valid_ratio", type=float, default=.2)
-    p.add_argument("--batch_size_per_device", type=int, default=32)
-    p.add_argument("--n_epochs", type=int, default=5)
-
-    p.add_argument("--warmup_ratio", type=float, default=.2)
-
-    p.add_argument("--max_length", type=int, default=100)
+    p.add_argument(
+        "--pretrained_model_name",
+        type=str,
+        default="ainize/kobart-news",
+    )
+    p.add_argument(
+        "--use_albert", 
+        action="store_true",
+    )
+    p.add_argument(
+        "--valid_ratio", 
+        type=float, 
+        default=.2,
+    )
+    p.add_argument(
+        "--batch_size_per_device", 
+        type=int, 
+        default=32,
+    )
+    p.add_argument(
+        "--n_epochs", 
+        type=int, 
+        default=5,
+    )
+    p.add_argument(
+        "--warmup_ratio", 
+        type=float, 
+        default=.2,
+    )
+    p.add_argument(
+        "--inp_max_length", 
+        type=int, 
+        default=512,
+    )
+    p.add_argument(
+        "--tar_max_length", 
+        type=int, 
+        default=128,
+    )
 
     config = p.parse_args()
 
     return config
 
 
-def get_datasets(fn, valid_ratio=.2):
-    ## Get list of labels and list of texts.
-    labels, texts = read_text(fn)
+def get_datasets(config):
+    ## Get list of documents.
+    documents = read_text(config)
 
-    ## Generate label to index map.
-    unique_labels = list(set(labels))
-    label_to_index = {}
-    index_to_label = {}
-    for i, label in enumerate(unique_labels):
-        label_to_index[label] = i
-        index_to_label[i] = label
+    tr_texts, tr_summaries = documents["tr_texts"], documents["tr_summaries"]
+    vl_texts, vl_summaries = documents["vl_texts"], documents["vl_summaries"]
 
-    ## Convert label text to integer value.
-    labels = list(map(label_to_index.get, labels))
+    train_dataset = TextAbstractSummarizationDataset(tr_texts, tr_summaries)
+    valid_dataset = TextAbstractSummarizationDataset(vl_texts, vl_summaries)
 
-    ## Shuffle before split into train and validation set.
-    shuffled = list(zip(texts, labels))
-    random.shuffle(shuffled)
-    texts = [e[0] for e in shuffled]
-    labels = [e[1] for e in shuffled]
-    idx = int(len(texts) * (1 - valid_ratio))
+    return train_dataset, valid_dataset
 
-    train_dataset = TextClassificationDataset(texts[:idx], labels[:idx])
-    valid_dataset = TextClassificationDataset(texts[idx:], labels[idx:])
+# def compute_loss(output_size, pad_index):
+#     ## Default weight for loss equals to 1, but we don't need to get loss for PAD token.
+#     ## Thus, set a weight for PAD to zero.
+#     loss_weight = torch.ones(output_size)
+#     loss_weight[pad_index] = 0.
+#     ## Instead of using Cross-Entropy loss,
+#     ## we can use Negative Log-Likelihood(NLL) loss with log-probability.
+#     crit = torch.nn.NLLLoss(
+#         weight=loss_weight,
+#         reduction="sum",
+#     )
 
-    return train_dataset, valid_dataset, index_to_label
+# def compute_loss(model, inputs):
+#     """
+#     How the loss is computed by Trainer. By default, all models 
+#     return the loss in the first element. Subclass and override 
+#     for custom behavior.
+
+#       - inputs: mini-batched dictionary with inputs, outputs
+#         -> For pretrained definition, we use 'inputs' keyword.
+
+#     """
+
+
+#     labels = None
+
+#     outputs = model(**inputs)
+
+#     if labels is not None:
+#         loss = label_smoother(outputs, labels)
+#     else:
+#         # We don't use .loss here since the model may return tuples instead of ModelOutput.
+#         loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
+
+#     return (loss, outputs) if return_outputs else loss
 
 
 def main(config):
+    def print_config(config):
+        pprint.PrettyPrinter(indent=4, sort_dicts=False).pprint(vars(config))
+    print_config(config)
+
     ## Get pretrained tokenizer.
-    tokenizer = BertTokenizerFast.from_pretrained(config.pretrained_model_name)
+    tokenizer = PreTrainedTokenizerFast.from_pretrained(config.pretrained_model_name)
     ## Get datasets and index to label map.
-    train_dataset, valid_dataset, index_to_label = get_datasets(
-        config.train_fn,
-        valid_ratio=config.valid_ratio,
-    )
+    train_dataset, valid_dataset = get_datasets(config)
 
     print(
-        "|train| =", len(train_dataset),
-        "|valid| =", len(valid_dataset),
+        f"|train| = {len(train_dataset)}",
+        f"|valid| = {len(valid_dataset)}",
     )
 
+    ## Pytorch style: batch_size_per_device
+    ## Tensorflow style: per_replica_batch_size
     total_batch_size = config.batch_size_per_device * torch.cuda.device_count()
     n_total_iterations = int(len(train_dataset) / total_batch_size * config.n_epochs)
     n_warmup_steps = int(n_total_iterations * config.warmup_ratio)
     print(
-        "#total_iters =", n_total_iterations,
-        "#warmup_iters =", n_warmup_steps,
+        f"# total iters = {n_total_iterations}",
+        f"# warmup iters = {n_warmup_steps}",
     )
 
-    # Get pretrained model with specified softmax layer.
-    model_loader = AlbertForSequenceClassification if config.use_albert else BertForSequenceClassification
-    model = model_loader.from_pretrained(
+    ## Get pretrained model with specified softmax layer.
+    model = BartForConditionalGeneration.from_pretrained(
         config.pretrained_model_name,
-        num_labels=len(index_to_label),
     )
 
     training_args = TrainingArguments(
@@ -114,38 +180,41 @@ def main(config):
         load_best_model_at_end=True,
     )
 
-    def compute_metrics(pred):
-        labels = pred.label_ids
-        preds = pred.predictions.argmax(-1)
+    def compute_loss(**kwargs):
+        print(kwargs.keys())
+        return None
 
-        return {
-            "accuracy": accuracy_score(labels, preds)
-        }
+    # def compute_metrics(pred):
+    #     labels = pred.label_ids
+    #     preds = pred.predictions.argmax(-1)
+
+    #     return {
+    #         "accuracy": accuracy_score(labels, preds)
+    #     }
 
     trainer = Trainer(
         model=model,
         args=training_args,
-        data_collator=TextClassificationCollator(
+        data_collator=TextAbstractSummarizationCollator(
             tokenizer,
-            config.max_length,
+            inp_max_length=config.inp_max_length,
+            tar_max_length=config.tar_max_length,
             with_text=False,
         ),
         train_dataset=train_dataset,
         eval_dataset=valid_dataset,
-        compute_metrics=compute_metrics,
+        # compute_loss=compute_loss,
+        # compute_metrics=compute_metrics,
     )
 
     trainer.train()
 
     torch.save({
-        "rnn": None,
-        "cnn": None,
-        "bert": trainer.model.state_dict(),
+        "bart": trainer.model.state_dict(),
         "config": config,
         "vocab": None,
-        "classes": index_to_label,
         "tokenizer": tokenizer,
-    }, config.model_fn)
+    }, config.model_fpath)
 
 
 if __name__ == "__main__":

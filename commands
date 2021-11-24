@@ -1,0 +1,38 @@
+### Preprocess
+time python preprocess.py \
+    --raw_train_path ./data/raw/Training \
+    --raw_valid_path ./data/raw/Validation \
+    --raw_test_path ./data/raw/Test
+
+## Make dev dataset.
+head -n 1000 ./data/corpus.train.if > ./data/corpus.train.dev.if
+head -n 1000 ./data/corpus.train.of > ./data/corpus.train.dev.of
+head -n 1000 ./data/corpus.valid.if > ./data/corpus.valid.dev.if
+head -n 1000 ./data/corpus.valid.of > ./data/corpus.valid.dev.of
+head -n 1000 ./data/corpus.test.if > ./data/corpus.test.dev.if
+
+### Train
+python finetune_plm_native.py \
+    --train ./data/corpus.train \
+    --valid ./data/corpus.valid \
+    --gpu_id 0 \
+    --max_grad_norm 1e+8 \
+    --batch_size 48 \
+    --lr 5e-5 \
+    --n_epochs 5 \
+    --use_radam \
+    --model_fpath hft.gogamza.kobart-base-v2.bs-48.lr-5e-5.radam
+
+### Inference.
+python translate.py \
+    --test ./data/corpus.test \
+    --model_fpath ./ckpt/20211124-190139/hft.gogamza.kobart-base-v2.bs-32.lr-5e-5.radam.05.3.22-25.04.2.49-12.11.pth \
+    --gpu_id 0 \
+    --batch_size 32 \
+    --beam_size 5 \
+    --length_penalty 2
+
+### API.
+wget -O dacon_submit_api-0.0.4-py3-none-any.zip https://bit.ly/3gMPScE
+unzip dacon_submit_api-0.0.4-py3-none-any.zip
+pip install dacon_submit_api-0.0.4-py3-none-any.whl

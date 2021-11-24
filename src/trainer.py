@@ -41,67 +41,67 @@ class MyEngine(Engine):
 
         self.device = next(model.parameters()).device
 
-    @staticmethod
-    def train(engine, mini_batch):
-        ## You have to reset the gradients of all model parameters
-        ## before to take another step in gradient descent.
-        engine.model.train() ## because we assign model as class variable, we can easily access to it
-        engine.optimizer.zero_grad()
+    # @staticmethod
+    # def train(engine, mini_batch):
+    #     ## You have to reset the gradients of all model parameters
+    #     ## before to take another step in gradient descent.
+    #     engine.model.train() ## because we assign model as class variable, we can easily access to it
+    #     engine.optimizer.zero_grad()
 
-        x, y = mini_batch.text, mini_batch.label
-        x, y = x.to(engine.device), y.to(engine.device)
+    #     x, y = mini_batch.text, mini_batch.label
+    #     x, y = x.to(engine.device), y.to(engine.device)
 
-        x = x[:, :engine.config.max_length]
+    #     x = x[:, :engine.config.max_length]
 
-        ## Take feed-forward.
-        y_hat = engine.model(x)
+    #     ## Take feed-forward.
+    #     y_hat = engine.model(x)
 
-        loss = engine.crit(y_hat, y)
-        loss.backward()
+    #     loss = engine.crit(y_hat, y)
+    #     loss.backward()
 
-        ## Calculate accuracy only if "y" is LongTensor,
-        ## which means that "y" is one-hot representation.
-        if isinstance(y, (torch.LongTensor, torch.cuda.LongTensor)):
-            accuracy = (torch.argmax(y_hat, dim=-1) == y).sum() / float(y.size(0))
-        else:
-            accuracy = 0
+    #     ## Calculate accuracy only if "y" is LongTensor,
+    #     ## which means that "y" is one-hot representation.
+    #     if isinstance(y, (torch.LongTensor, torch.cuda.LongTensor)):
+    #         accuracy = (torch.argmax(y_hat, dim=-1) == y).sum() / float(y.size(0))
+    #     else:
+    #         accuracy = 0
 
-        p_norm = float(get_parameter_norm(engine.model.parameters()))
-        g_norm = float(get_grad_norm(engine.model.parameters()))
+    #     p_norm = float(get_parameter_norm(engine.model.parameters()))
+    #     g_norm = float(get_grad_norm(engine.model.parameters()))
 
-        ## Take a step of gradient descent.
-        engine.optimizer.step()
+    #     ## Take a step of gradient descent.
+    #     engine.optimizer.step()
 
-        return {
-            "loss": float(loss),
-            "accuracy": float(accuracy),
-            "|param|": p_norm,
-            "|g_param|": g_norm,
-        }
+    #     return {
+    #         "loss": float(loss),
+    #         "accuracy": float(accuracy),
+    #         "|param|": p_norm,
+    #         "|g_param|": g_norm,
+    #     }
 
-    @staticmethod
-    def validate(engine, mini_batch):
-        engine.model.eval()
+    # @staticmethod
+    # def validate(engine, mini_batch):
+    #     engine.model.eval()
 
-        with torch.no_grad():
-            x, y = mini_batch.text, mini_batch.label
-            x, y = x.to(engine.device), y.to(engine.device)
+    #     with torch.no_grad():
+    #         x, y = mini_batch.text, mini_batch.label
+    #         x, y = x.to(engine.device), y.to(engine.device)
 
-            x = x[:, :engine.config.max_length]
+    #         x = x[:, :engine.config.max_length]
 
-            y_hat = engine.model(x)
+    #         y_hat = engine.model(x)
 
-            loss = engine.crit(y_hat, y)
+    #         loss = engine.crit(y_hat, y)
 
-            if isinstance(y, (torch.LongTensor, torch.cuda.LongTensor)):
-                accuracy = (torch.argmax(y_hat, dim=-1) == y).sum() / float(y.size(0))
-            else:
-                accuracy = 0
+    #         if isinstance(y, (torch.LongTensor, torch.cuda.LongTensor)):
+    #             accuracy = (torch.argmax(y_hat, dim=-1) == y).sum() / float(y.size(0))
+    #         else:
+    #             accuracy = 0
 
-        return {
-            "loss": float(loss),
-            "accuracy": float(accuracy),
-        }
+    #     return {
+    #         "loss": float(loss),
+    #         "accuracy": float(accuracy),
+    #     }
 
     @staticmethod
     def attach(train_engine, validation_engine, verbose=VERBOSE_BATCH_WISE):
@@ -113,7 +113,7 @@ class MyEngine(Engine):
                 metric_name,
             )
 
-        training_metric_names = ["loss", "accuracy", "|param|", "|g_param|"]
+        training_metric_names = ["loss", "ppl", "|param|", "|g_param|"]
 
         for metric_name in training_metric_names:
             attach_running_average(train_engine, metric_name)
@@ -128,15 +128,15 @@ class MyEngine(Engine):
         if verbose >= VERBOSE_EPOCH_WISE:
             @train_engine.on(Events.EPOCH_COMPLETED)
             def print_train_logs(engine):
-                print("Epoch {} - |param|={:.2e} |g_param|={:.2e} loss={:.4e} accuracy={:.4f}".format(
+                print("Epoch {} - |param|={:.2e} |g_param|={:.2e} loss={:.4e} ppl={:.2e}".format(
                     engine.state.epoch,
                     engine.state.metrics["|param|"],
                     engine.state.metrics["|g_param|"],
                     engine.state.metrics["loss"],
-                    engine.state.metrics["accuracy"],
+                    engine.state.metrics["ppl"],
                 ))
 
-        validation_metric_names = ["loss", "accuracy"]
+        validation_metric_names = ["loss", "ppl"]
         
         for metric_name in validation_metric_names:
             attach_running_average(validation_engine, metric_name)
@@ -149,9 +149,9 @@ class MyEngine(Engine):
         if verbose >= VERBOSE_EPOCH_WISE:
             @validation_engine.on(Events.EPOCH_COMPLETED)
             def print_valid_logs(engine):
-                print("Validation - loss={:.4e} accuracy={:.4f} best_loss={:.4e}".format(
+                print("Validation - loss={:.4e} ppl={:.2e} best_loss={:.4e}".format(
                     engine.state.metrics["loss"],
-                    engine.state.metrics["accuracy"],
+                    engine.state.metrics["ppl"],
                     engine.best_loss,
                 ))
 
@@ -170,7 +170,7 @@ class MyEngine(Engine):
                 "config": config,
                 **kwargs,
             }, 
-            config.model_fn,
+            config.model_fpath,
         )
 
 
