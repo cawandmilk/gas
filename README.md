@@ -14,14 +14,15 @@ Sites:
   - https://huggingface.co/gogamza/kobart-summarization
   - https://huggingface.co/upskyy/kobart-summarization-v3
 
-Preprocess format:
-  - https://github.com/huggingface/transformers/blob/master/examples/pytorch/summarization/README.md
-  
-```
-{"text": "I'm sitting here in a boring room. It's just another rainy Sunday afternoon. I'm wasting my time I got nothing to do. I'm hanging around I'm waiting for you. But nothing ever happens. And I wonder", "summary": "I'm sitting in a room where I'm waiting for something to happen"}
-{"text": "I see trees so green, red roses too. I see them bloom for me and you. And I think to myself what a wonderful world. I see skies so blue and clouds so white. The bright blessed day, the dark sacred night. And I think to myself what a wonderful world.", "summary": "I'm a gardener and I'm a big fan of flowers."}
-{"text": "Christmas time is here. Happiness and cheer. Fun for all that children call. Their favorite time of the year. Snowflakes in the air. Carols everywhere. Olden times and ancient rhymes. Of love and dreams to share", "summary": "It's that time of year again."}
-```
-
 Bart modeling:
   - https://huggingface.co/transformers/_modules/transformers/modeling_bart.html
+
+
+### Result
+
+|Date|Model|Epoch|BS|LR|Warm-up|Opt|Tr-loss|Vl-loss|ROUGE-1|ROUGE-2|ROUGE-N|Note|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|2021-11-24|gogamza/kobart-summarization|5|32|5e-5|0|RAdam|3.09|2.09?|**0.4061**|**0.2485**|**0.3299**|train w/ dev. (head 1000)|
+|2021-11-24|gogamza/kobart-base-v2|5|32|5e-5|0|RAdam|3.22|2.49?|0.0357|0.0038|0.0327|train w/ dev. (head 1000)|
+|2021-11-25|gogamza/kobart-base-v2|5|48|5e-5|0|RAdam|1.73|2.14|0.1062|0.0069|0.0792||
+|2021-11-25|gogamza/kobart-base-v2|5|48|5e-5|0.2|RAdam|1.73|2.14||||(current)|

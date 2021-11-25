@@ -1,11 +1,8 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
+import torch_optimizer
 
 from transformers import PreTrainedTokenizerFast, BartForConditionalGeneration
 from transformers import get_linear_schedule_with_warmup
-
-import torch_optimizer as custom_optim
 
 import argparse
 import pprint
@@ -141,7 +138,7 @@ def define_argparser(is_continue: bool = False):
 def get_datasets(config, tokenizer):
     ## Get list of documents.
     tr_documents = read_text(config, fpath=Path(config.train))
-    vl_documents = read_text(config, fpath=Path(config.train))
+    vl_documents = read_text(config, fpath=Path(config.valid))
 
     tr_texts, tr_summaries = tr_documents["texts"], tr_documents["summaries"]
     vl_texts, vl_summaries = vl_documents["texts"], vl_documents["summaries"]
@@ -171,7 +168,7 @@ def get_datasets(config, tokenizer):
 
 def get_optimizer(model, config):
     if config.use_radam:
-        optimizer = custom_optim.RAdam(model.parameters(), lr=config.lr)
+        optimizer = torch_optimizer.RAdam(model.parameters(), lr=config.lr)
     else:
         raise AssertionError()
         ## Prepare optimizer and schedule (linear warmup and decay)
@@ -228,12 +225,11 @@ def main(config):
 
     ## We will not use our own loss.
     crit = None
-    # scheduler = get_linear_schedule_with_warmup(
-    #     optimizer,
-    #     n_warmup_steps,
-    #     n_total_iterations,
-    # )
-    scheduler = None
+    scheduler = get_linear_schedule_with_warmup(
+        optimizer,
+        n_warmup_steps,
+        n_total_iterations,
+    )
 
     if config.gpu_id >= 0:
         # model.device("cuda")

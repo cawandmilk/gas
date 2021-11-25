@@ -21,7 +21,7 @@ python finetune_plm_native.py \
     --lr 5e-5 \
     --n_epochs 5 \
     --use_radam \
-    --model_fpath hft.gogamza.kobart-base-v2.bs-48.lr-5e-5.radam
+    --model_fpath hft.gogamza.kobart-base-v2.bs-48.lr-5e-5.warmup-2.radam
 
 ### Inference.
 python translate.py \

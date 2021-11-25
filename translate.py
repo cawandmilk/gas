@@ -157,7 +157,7 @@ def main(config):
     save_to = Path(
         config.submission_path,
         ".".join([
-            str(Path(config.model_fpath).parent),
+            list(Path(config.model_fpath).parents)[-1],
             *Path(config.model_fpath).name.split(".")[:-1],
             "csv",
         ]),
