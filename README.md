@@ -22,7 +22,7 @@ Bart modeling:
 
 |Date|Model|Epoch|BS|LR|Warm-up|Opt|Tr-loss|Vl-loss|ROUGE-1|ROUGE-2|ROUGE-N|Note|
 |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-|2021-11-24|gogamza/kobart-summarization|5|32|5e-5|0|RAdam|3.09|2.09?|**0.4061**|**0.2485**|**0.3299**|train w/ dev. (head 1000)|
-|2021-11-24|gogamza/kobart-base-v2|5|32|5e-5|0|RAdam|3.22|2.49?|0.0357|0.0038|0.0327|train w/ dev. (head 1000)|
-|2021-11-25|gogamza/kobart-base-v2|5|48|5e-5|0|RAdam|1.73|2.14|0.1062|0.0069|0.0792||
-|2021-11-25|gogamza/kobart-base-v2|5|48|5e-5|0.2|RAdam|1.73|2.14||||(current)|
+|2021-11-24|gogamza/kobart-summarization|5|32\*1\*1|5e-5|0|RAdam|3.09|2.09?|**0.4061**|**0.2485**|**0.3299**|train w/ dev. (head 1000)|
+|2021-11-24|gogamza/kobart-base-v2|5|32\*1\*1|5e-5|0|RAdam|3.22|2.49?|0.0357|0.0038|0.0327|train w/ dev. (head 1000)|
+|2021-11-25|gogamza/kobart-base-v2|5|48\*1\*1|5e-5|0|RAdam|1.73|2.14|0.1062|0.0069|0.0792||
+|2021-11-25|gogamza/kobart-base-v2|5|48\*2\*1|5e-5|0.2|AdamW||||||(current-hftrainer)|

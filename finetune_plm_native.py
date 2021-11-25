@@ -44,6 +44,16 @@ def define_argparser(is_continue: bool = False):
         default="ifof",
     )
     p.add_argument(
+        "--inp_max_length", 
+        type=int, 
+        default=512,
+    )
+    p.add_argument(
+        "--tar_max_length", 
+        type=int, 
+        default=128,
+    )
+    p.add_argument(
         "--data",
         type=str,
         default="data",
@@ -117,17 +127,6 @@ def define_argparser(is_continue: bool = False):
         "--valid_ratio", 
         type=float, 
         default=.2,
-    )
-
-    p.add_argument(
-        "--inp_max_length", 
-        type=int, 
-        default=512,
-    )
-    p.add_argument(
-        "--tar_max_length", 
-        type=int, 
-        default=128,
     )
 
     config = p.parse_args()

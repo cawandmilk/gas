@@ -2,17 +2,16 @@ import torch
 
 from transformers import Trainer
 from transformers import TrainingArguments
-
 from transformers import PreTrainedTokenizerFast, BartForConditionalGeneration
 
 import argparse
+import datetime
 import pprint
 
 from pathlib import Path
-from sklearn.metrics import accuracy_score
 
-from src.bert_dataset import TextAbstractSummarizationCollator
-from src.bert_dataset import TextAbstractSummarizationDataset
+from src.bart_dataset import TextAbstractSummarizationCollator
+from src.bart_dataset import TextAbstractSummarizationDataset
 from src.utils import read_text
 
 
@@ -24,9 +23,19 @@ def define_argparser():
         required=True,
     )
     p.add_argument(
-        "--data",
+        "--train",
+        required=True,
+        help="Training set file name except the extention. (ex: train.en --> train)",
+    )
+    p.add_argument(
+        "--valid",
+        required=True,
+        help="Validation set file name except the extention. (ex: valid.en --> valid)",
+    )
+    p.add_argument(
+        "--lang",
         type=str,
-        default="data",
+        default="ifof",
     )
     p.add_argument(
         "--inp_suffix",
@@ -38,27 +47,37 @@ def define_argparser():
         type=str,
         default="of",
     )
+    p.add_argument(
+        "--data",
+        type=str,
+        default="data",
+    )
+    p.add_argument(
+        "--logs",
+        type=str,
+        default="logs",
+    )
+    p.add_argument(
+        "--ckpt",
+        type=str,
+        default="ckpt",
+    )
 
     ## Recommended model list:
-    ## - ...
+    ## - gogamza/kobart-base-v1
+    ## - gogamza/kobart-base-v2
+    ## - gogamza/kobart-summarization
+    ## - ainize/kobart-news
     p.add_argument(
         "--pretrained_model_name",
         type=str,
-        default="ainize/kobart-news",
+        default="gogamza/kobart-base-v2",
     )
+
     p.add_argument(
-        "--use_albert", 
-        action="store_true",
-    )
-    p.add_argument(
-        "--valid_ratio", 
-        type=float, 
-        default=.2,
-    )
-    p.add_argument(
-        "--batch_size_per_device", 
+        "--per_replica_batch_size", 
         type=int, 
-        default=32,
+        default=48,
     )
     p.add_argument(
         "--n_epochs", 
@@ -69,6 +88,16 @@ def define_argparser():
         "--warmup_ratio", 
         type=float, 
         default=.2,
+    )
+    p.add_argument(
+        "--lr", 
+        type=float, 
+        default=5e-5,
+    )
+    p.add_argument(
+        "--weight_decay", 
+        type=float, 
+        default=1e-2,
     )
     p.add_argument(
         "--inp_max_length", 
@@ -88,51 +117,16 @@ def define_argparser():
 
 def get_datasets(config):
     ## Get list of documents.
-    documents = read_text(config)
+    tr_documents = read_text(config, fpath=Path(config.train))
+    vl_documents = read_text(config, fpath=Path(config.valid))
 
-    tr_texts, tr_summaries = documents["tr_texts"], documents["tr_summaries"]
-    vl_texts, vl_summaries = documents["vl_texts"], documents["vl_summaries"]
+    tr_texts, tr_summaries = tr_documents["texts"], tr_documents["summaries"]
+    vl_texts, vl_summaries = vl_documents["texts"], vl_documents["summaries"]
 
     train_dataset = TextAbstractSummarizationDataset(tr_texts, tr_summaries)
     valid_dataset = TextAbstractSummarizationDataset(vl_texts, vl_summaries)
 
     return train_dataset, valid_dataset
-
-# def compute_loss(output_size, pad_index):
-#     ## Default weight for loss equals to 1, but we don't need to get loss for PAD token.
-#     ## Thus, set a weight for PAD to zero.
-#     loss_weight = torch.ones(output_size)
-#     loss_weight[pad_index] = 0.
-#     ## Instead of using Cross-Entropy loss,
-#     ## we can use Negative Log-Likelihood(NLL) loss with log-probability.
-#     crit = torch.nn.NLLLoss(
-#         weight=loss_weight,
-#         reduction="sum",
-#     )
-
-# def compute_loss(model, inputs):
-#     """
-#     How the loss is computed by Trainer. By default, all models 
-#     return the loss in the first element. Subclass and override 
-#     for custom behavior.
-
-#       - inputs: mini-batched dictionary with inputs, outputs
-#         -> For pretrained definition, we use 'inputs' keyword.
-
-#     """
-
-
-#     labels = None
-
-#     outputs = model(**inputs)
-
-#     if labels is not None:
-#         loss = label_smoother(outputs, labels)
-#     else:
-#         # We don't use .loss here since the model may return tuples instead of ModelOutput.
-#         loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
-
-#     return (loss, outputs) if return_outputs else loss
 
 
 def main(config):
@@ -145,53 +139,35 @@ def main(config):
     ## Get datasets and index to label map.
     train_dataset, valid_dataset = get_datasets(config)
 
-    print(
-        f"|train| = {len(train_dataset)}",
-        f"|valid| = {len(valid_dataset)}",
-    )
-
-    ## Pytorch style: batch_size_per_device
-    ## Tensorflow style: per_replica_batch_size
-    total_batch_size = config.batch_size_per_device * torch.cuda.device_count()
-    n_total_iterations = int(len(train_dataset) / total_batch_size * config.n_epochs)
-    n_warmup_steps = int(n_total_iterations * config.warmup_ratio)
-    print(
-        f"# total iters = {n_total_iterations}",
-        f"# warmup iters = {n_warmup_steps}",
-    )
-
     ## Get pretrained model with specified softmax layer.
-    model = BartForConditionalGeneration.from_pretrained(
-        config.pretrained_model_name,
-    )
+    model = BartForConditionalGeneration.from_pretrained(config.pretrained_model_name)
+
+    ## Path arguments.
+    nowtime = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    output_dir = Path(config.ckpt, nowtime)
+    logging_dir = Path(config.logs, nowtime, "run")
 
     training_args = TrainingArguments(
-        output_dir="./.checkpoints",
-        num_train_epochs=config.n_epochs,
-        per_device_train_batch_size=config.batch_size_per_device,
-        per_device_eval_batch_size=config.batch_size_per_device,
-        warmup_steps=n_warmup_steps,
-        weight_decay=0.01,
-        fp16=True,
+        output_dir=output_dir,
         evaluation_strategy="epoch",
+        per_device_train_batch_size=config.per_replica_batch_size,
+        per_device_eval_batch_size=config.per_replica_batch_size,
+        learning_rate=config.lr,
+        weight_decay=config.weight_decay,
+        warmup_ratio=config.warmup_ratio,
+        num_train_epochs=config.n_epochs,
+        logging_dir=logging_dir,
+        logging_strategy="steps",
+        logging_steps=100,
         save_strategy="epoch",
-        logging_steps=n_total_iterations // 100,
-        save_steps=n_total_iterations // config.n_epochs,
+        # save_steps=1000,
+        fp16=True,
+        dataloader_num_workers=4,
+        disable_tqdm=True,
         load_best_model_at_end=True,
     )
 
-    def compute_loss(**kwargs):
-        print(kwargs.keys())
-        return None
-
-    # def compute_metrics(pred):
-    #     labels = pred.label_ids
-    #     preds = pred.predictions.argmax(-1)
-
-    #     return {
-    #         "accuracy": accuracy_score(labels, preds)
-    #     }
-
+    ## Define trainer.
     trainer = Trainer(
         model=model,
         args=training_args,
@@ -203,16 +179,18 @@ def main(config):
         ),
         train_dataset=train_dataset,
         eval_dataset=valid_dataset,
-        # compute_loss=compute_loss,
         # compute_metrics=compute_metrics,
+        callbacks=[
+
+        ]
     )
 
+    ## Train.
     trainer.train()
 
     torch.save({
         "bart": trainer.model.state_dict(),
         "config": config,
-        "vocab": None,
         "tokenizer": tokenizer,
     }, config.model_fpath)
 

@@ -1,4 +1,4 @@
-### Preprocess
+## Preprocess
 time python preprocess.py \
     --raw_train_path ./data/raw/Training \
     --raw_valid_path ./data/raw/Validation \
@@ -11,7 +11,7 @@ head -n 1000 ./data/corpus.valid.if > ./data/corpus.valid.dev.if
 head -n 1000 ./data/corpus.valid.of > ./data/corpus.valid.dev.of
 head -n 1000 ./data/corpus.test.if > ./data/corpus.test.dev.if
 
-### Train
+## Train: native
 python finetune_plm_native.py \
     --train ./data/corpus.train \
     --valid ./data/corpus.valid \
@@ -23,7 +23,16 @@ python finetune_plm_native.py \
     --use_radam \
     --model_fpath hft.gogamza.kobart-base-v2.bs-48.lr-5e-5.warmup-2.radam
 
-### Inference.
+## Train: hftariner.
+python finetune_plm_hftrainer.py \
+    --train ./data/corpus.train \
+    --valid ./data/corpus.valid \
+    --per_replica_batch_size 48 \
+    --lr 5e-5 \
+    --n_epochs 5 \
+    --model_fpath hft.gogamza.kobart-base-v2.bs-48*2*1.lr-5e-5.wd-1e-2.warmup-2.adamw
+
+## Inference.
 python translate.py \
     --test ./data/corpus.test \
     --model_fpath ./ckpt/20211124-190139/hft.gogamza.kobart-base-v2.bs-32.lr-5e-5.radam.05.3.22-25.04.2.49-12.11.pth \
@@ -32,7 +41,10 @@ python translate.py \
     --beam_size 5 \
     --length_penalty 2
 
-### API.
+## Auto-submission API.
 wget -O dacon_submit_api-0.0.4-py3-none-any.zip https://bit.ly/3gMPScE
 unzip dacon_submit_api-0.0.4-py3-none-any.zip
 pip install dacon_submit_api-0.0.4-py3-none-any.whl
+
+## Remote server terminal.
+(server) tensorboard --logdir ./logs/20211125-161124/run --port 8888 --bind_all
