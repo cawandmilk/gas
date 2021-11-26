@@ -89,7 +89,6 @@ class EngineForBart(MyEngine):
         if engine.config.gpu_id >= 0:
             ## Use caler instead of engine.optimizer.step() if using GPU.
             engine.scaler.step(engine.optimizer)
-            engine.scaler.update()
         else:
             engine.optimizer.step()
 
@@ -97,7 +96,7 @@ class EngineForBart(MyEngine):
         engine.scaler.update()
 
         ## No update scheduler when errors occured in mixed precision policy.
-        if scale == engine.scaler.get_scale() and engine.scaheduler != None:
+        if scale == engine.scaler.get_scale() and engine.scheduler != None:
             engine.scheduler.step()
 
         ## word_count = int(y.tgt[1].sum())

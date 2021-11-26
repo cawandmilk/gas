@@ -72,7 +72,7 @@ def define_argparser(is_continue: bool = False):
     p.add_argument(
         "--pretrained_model_name",
         type=str,
-        default="gogamza/kobart-base-v2",
+        default="gogamza/kobart-summarization",
     )
     
     p.add_argument(

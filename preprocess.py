@@ -88,11 +88,15 @@ def text_cleaning(text: str) -> str:
     
     ## Remove URL.
     pattern = "(http|ftp|https)://(?:[-\w.]|(?:%[\da-fA-F]{2}))+"
-    text = re.sub(pattern=pattern, repl="", string=text)
+    text = re.sub(pattern=pattern, repl=" ", string=text)
     
     ## Stand-alone korean 자음/모음.
     pattern = "([ㄱ-ㅎㅏ-ㅣ]+)"
-    text = re.sub(pattern=pattern, repl="", string=text)
+    text = re.sub(pattern=pattern, repl=" ", string=text)
+
+    ## Only korean, english, digits, space are allowed.
+    pattern = "[^ a-zA-Z0-9가-힣]"
+    text = re.sub(pattern=pattern, repl=" ", string=text)
     
     ## HTML tags. -> ???
     # pattern = "<[^>]*>"

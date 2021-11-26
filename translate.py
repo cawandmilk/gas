@@ -4,6 +4,7 @@ from transformers import PreTrainedTokenizerFast, BartForConditionalGeneration
 
 import argparse
 import os
+import pprint
 
 from pathlib import Path
 from tqdm import tqdm
@@ -94,6 +95,8 @@ def get_datasets(config, tokenizer):
             tokenizer, 
             inp_max_length=config.inp_max_length,
             tar_max_length=config.tar_max_length,
+            with_text=False,
+            is_train=False,
         ),
     )
 
@@ -101,6 +104,10 @@ def get_datasets(config, tokenizer):
 
 
 def main(config):
+    def print_config(config):
+        pprint.PrettyPrinter(indent=4, sort_dicts=False).pprint(config)
+    print_config(vars(config))
+
     ## Load data.
     saved_data = torch.load(
         config.model_fpath,
@@ -134,12 +141,15 @@ def main(config):
         outputs = []
         for mini_batch in tqdm(test_loader, total=len(test_loader)):
             input_ids = mini_batch["input_ids"].to(device)
+            attention_mask = mini_batch["attention_mask"].to(device)
 
             ## Generate ids of summaries.
             ##   - https://huggingface.co/transformers/v2.11.0/model_doc/bart.html#transformers.BartForConditionalGeneration.generate
             output = model.generate(
                 input_ids, 
-                eos_token_id=tokenizer.eos_token_id,
+                attention_mask=attention_mask,
+                ## bos_token_id=tokenizer.bos_token_id,
+                ## eos_token_id=tokenizer.eos_token_id,
                 max_length=config.tar_max_length,
                 num_beams=config.beam_size,
                 length_penalty=config.length_penalty,
@@ -150,15 +160,16 @@ def main(config):
                 output.tolist(), 
                 skip_special_tokens=True,
             )
+
             ## Get all.
             outputs.extend(output)
 
     ## Save it.
     save_to = Path(
-        config.submission_path,
+        config.submission_path,                                 ## submission/
         ".".join([
-            list(Path(config.model_fpath).parents)[-1],
-            *Path(config.model_fpath).name.split(".")[:-1],
+            Path(config.model_fpath).parts[-2],                 ## datetime
+            *Path(config.model_fpath).name.split(".")[:-1],     ## moel_fpath
             "csv",
         ]),
     )
@@ -183,6 +194,7 @@ def main(config):
             team_name="이야기연구소 주식회사", 
             memo="",
         )
+        print_config(result)
 
 if __name__ == "__main__":
     config = define_argparser()

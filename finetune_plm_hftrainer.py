@@ -1,8 +1,10 @@
 import torch
+import torch_optimizer
 
 from transformers import Trainer
 from transformers import TrainingArguments
 from transformers import PreTrainedTokenizerFast, BartForConditionalGeneration
+from transformers import get_linear_schedule_with_warmup
 
 import argparse
 import datetime
@@ -71,7 +73,7 @@ def define_argparser():
     p.add_argument(
         "--pretrained_model_name",
         type=str,
-        default="gogamza/kobart-base-v2",
+        default="gogamza/kobart-summarization",
     )
 
     p.add_argument(
@@ -127,6 +129,18 @@ def get_datasets(config):
     valid_dataset = TextAbstractSummarizationDataset(vl_texts, vl_summaries)
 
     return train_dataset, valid_dataset
+
+
+# def get_optimizers(config, num_training_steps: int):
+#     optimizer = torch_optimizer.RAdam(
+#         lr=config.lr,
+#         weight_decay=config.weight_decay,
+#     )
+#     lr_scheduler = get_linear_schedule_with_warmup(
+#         optimizer=optimizer,
+#         num_warmup_steps=int(num_training_steps * config.warmup_ratio),
+#         num_training_steps=num_training_steps,
+#     )
 
 
 def main(config):
@@ -188,11 +202,14 @@ def main(config):
     ## Train.
     trainer.train()
 
+    ## Save the best model.
+    model_dir = list(Path(config.ckpt).glob("*"))[-1]
+
     torch.save({
         "bart": trainer.model.state_dict(),
         "config": config,
         "tokenizer": tokenizer,
-    }, config.model_fpath)
+    }, Path(model_dir, ".".join([config.model_fpath, "pth"])))
 
 
 if __name__ == "__main__":
