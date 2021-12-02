@@ -1,5 +1,11 @@
+## EDA
+python eda.py \
+    --raw_train_path ./data/raw/Training \
+    --raw_valid_path ./data/raw/Validation \
+    --raw_test_path ./data/raw/Test
+
 ## Preprocess
-time python preprocess.py \
+python preprocess.py \
     --raw_train_path ./data/raw/Training \
     --raw_valid_path ./data/raw/Validation \
     --raw_test_path ./data/raw/Test
@@ -28,15 +34,15 @@ python finetune_plm_hftrainer.py \
     --valid ./data/corpus.valid \
     --pretrained_model_name gogamza/kobart-summarization \
     --per_replica_batch_size 48 \
-    --lr 2e-5 \
+    --lr 5e-5 \
     --weight_decay 0 \
     --n_epochs 10 \
-    --model_fpath hft.gogamza.kobart-summarization.bs-48*2*1.lr-2e-5.wd-0.warmup-2.adamw
+    --model_fpath hft.gogamza.kobart-summarization.bs-48*2*1.lr-5e-5.wd-0.warmup-2.adamw.법률
 
 ## Inference.
-python translate.py \
+python summarize.py \
     --test ./data/corpus.test \
-    --model_fpath ./ckpt/20211126-162202/hft.gogamza.kobart-summarization.bs-48*2*1.lr-2e-5.wd-0.warmup-2.adamw.pth \
+    --model_fpath ./ckpt/20211127-122739/hft.gogamza.kobart-summarization.bs-48*2*1.lr-5e-5.wd-0.warmup-2.adamw.법률.pth \
     --gpu_id 0 \
     --batch_size 128 \
     --beam_size 5 \

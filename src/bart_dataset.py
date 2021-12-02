@@ -84,31 +84,20 @@ class TextAbstractSummarizationCollator():
     def _test_collator(self, samples: dict) -> dict:
         texts = [s["text"] for s in samples]
 
-        encoding = self.tokenizer(
-            texts,
-            padding=True,
-            truncation=True,
-            return_tensors="pt",
-            max_length=self.inp_max_length,
-        )
+        input_ids = []
+        for text in texts:
+            text = self.tokenizer.encode(text)
+            text = [self.tokenizer.bos_token_id] + text[:self.inp_max_length - 2] + [self.tokenizer.eos_token_id]
+
+            input_ids.append(text)
         
-        input_ids = encoding["input_ids"]
-        attention_mask = encoding["attention_mask"]
-
-        # ## Slice with 'inp_max_length', not 'tar_max_length'.
-        # input_ids = [i[:self.inp_max_length - 2] for i in encoding]
-
-        # ## We must set <BOS> and <EOS> tokens when generate mode.
-        # input_ids = [[self.tokenizer.bos_token_id] + i + [self.tokenizer.eos_token_id] for i in input_ids]
-
-        # ## Pad as batch-wise.
-        # input_ids = self._pad(input_ids, max_length=self.inp_max_length)
+        input_ids = self._pad(input_ids, max_length=self.inp_max_length)
 
         ## Pack as pre-defined arguments:
         ##   - https://huggingface.co/gogamza/kobart-summarization
         return_value = {
             "input_ids": input_ids,
-            "attention_mask": attention_mask,
+            # "attention_mask": attention_mask,
         }
         if self.with_text:
             return_value["text"] = texts

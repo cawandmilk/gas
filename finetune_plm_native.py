@@ -200,14 +200,14 @@ def main(config):
     ## Get pretrained tokenizer.
     tokenizer = PreTrainedTokenizerFast.from_pretrained(config.pretrained_model_name)
     ## Get datasets and index to label map.
-    train_laoder, valid_loader = get_datasets(config, tokenizer)
+    train_loader, valid_loader = get_datasets(config, tokenizer)
 
     print(
-        f"|train| = {len(train_laoder)}",
+        f"|train| = {len(train_loader)}",
         f"|valid| = {len(valid_loader)}",
     )
 
-    n_total_iterations = len(train_laoder) * config.n_epochs
+    n_total_iterations = len(train_loader) * config.n_epochs
     n_warmup_steps = int(n_total_iterations * config.warmup_ratio)
     print(
         f"# total iters = {n_total_iterations}",
@@ -216,10 +216,6 @@ def main(config):
 
     ## Get pretrained model with specified softmax layer.
     model = BartForConditionalGeneration.from_pretrained(config.pretrained_model_name)
-    # if torch.cuda.device_count() > 1:
-    #     print(f"{torch.cuda.device_count()} gpus available.")
-    #     model = torch.nn.DataParallel(model)
-
     optimizer = get_optimizer(model, config)
 
     ## We will not use our own loss.
@@ -241,7 +237,7 @@ def main(config):
         crit,
         optimizer,
         scheduler,
-        train_laoder,
+        train_loader,
         valid_loader,
     )
     

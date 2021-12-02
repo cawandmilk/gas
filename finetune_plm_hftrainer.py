@@ -177,7 +177,7 @@ def main(config):
         # save_steps=1000,
         fp16=True,
         dataloader_num_workers=4,
-        disable_tqdm=True,
+        disable_tqdm=False,
         load_best_model_at_end=True,
     )
 
@@ -194,9 +194,6 @@ def main(config):
         train_dataset=train_dataset,
         eval_dataset=valid_dataset,
         # compute_metrics=compute_metrics,
-        callbacks=[
-
-        ]
     )
 
     ## Train.

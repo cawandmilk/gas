@@ -6,6 +6,9 @@ import re
 
 from operator import itemgetter
 from pathlib import Path
+from tqdm import tqdm
+
+from src.clean import CleanNewspaperArticle
 
 
 def define_argparser():
@@ -60,6 +63,10 @@ def read_samples(raw_path: list, sort_dicts: bool = True) -> list:
     documents = []
 
     for sample in Path(raw_path).glob("*.json*"):
+        ## Backdoor.
+        if not Path(sample).name.endswith(".jsonl") and not Path(sample).name.startswith("신문기사"):
+            continue
+
         if str(sample).endswith(".json"):
             documents += _read_json(sample)
         elif str(sample).endswith(".jsonl"):
@@ -79,49 +86,20 @@ def read_samples(raw_path: list, sort_dicts: bool = True) -> list:
     return documents
 
 
-def text_cleaning(text: str) -> str:
-    ## Ref. https://blog.naver.com/PostView.nhn?blogId=wideeyed&logNo=221347960543
-    
-    ## Remove email.
-    pattern = "([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)" 
-    text = re.sub(pattern=pattern, repl="", string=text)
-    
-    ## Remove URL.
-    pattern = "(http|ftp|https)://(?:[-\w.]|(?:%[\da-fA-F]{2}))+"
-    text = re.sub(pattern=pattern, repl=" ", string=text)
-    
-    ## Stand-alone korean 자음/모음.
-    pattern = "([ㄱ-ㅎㅏ-ㅣ]+)"
-    text = re.sub(pattern=pattern, repl=" ", string=text)
-
-    ## Only korean, english, digits, space are allowed.
-    pattern = "[^ a-zA-Z0-9가-힣]"
-    text = re.sub(pattern=pattern, repl=" ", string=text)
-    
-    ## HTML tags. -> ???
-    # pattern = "<[^>]*>"
-    # text = re.sub(pattern=pattern, repl="", string=text)
-    
-    ## Specail words.
-    # pattern = "[^\w\s]"
-    # text = re.sub(pattern=pattern, repl="", string=text)
-    
-    ## Strip and remove double space, line feed, carrage returns.
-    text = " ".join([i.strip() for i in text.split()])
-
-    return text
-
-
 def extract_lines(config, documents: list) -> tuple:
     ## We will save to jsonl files.
     extracted_features = []
+    cleaner = CleanNewspaperArticle()
 
-    for document in documents: 
+    for document in tqdm(documents, total=len(documents)): 
         ## In train, valid dataset, we can get key "text".
         if document.get("text") != None:
             f = {
                 "id": document["id"],
-                "text": "\t".join([text_cleaning(line["sentence"]) for line in itertools.chain(*document["text"])]),
+                "text": "\t".join(cleaner(
+                    [line["sentence"] for line in itertools.chain(*document["text"])], 
+                    document["media_name"],
+                )),
                 "summary": document["abstractive"][0], ## list -> element (str)
             }
 
@@ -129,7 +107,10 @@ def extract_lines(config, documents: list) -> tuple:
         elif document.get("article_original") != None:
             f = {
                 "id": document["id"],
-                "text": "\t".join([text_cleaning(line) for line in document["article_original"]]),
+                "text": "\t".join(cleaner(
+                    document["article_original"], 
+                    document["media"],
+                )),
             }
 
         else:

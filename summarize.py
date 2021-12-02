@@ -6,6 +6,8 @@ import argparse
 import os
 import pprint
 
+import numpy as np
+
 from pathlib import Path
 from tqdm import tqdm
 
@@ -139,17 +141,18 @@ def main(config):
         model.eval()
 
         outputs = []
+        raw_outputs = []
         for mini_batch in tqdm(test_loader, total=len(test_loader)):
             input_ids = mini_batch["input_ids"].to(device)
-            attention_mask = mini_batch["attention_mask"].to(device)
+            # attention_mask = mini_batch["attention_mask"].to(device)
 
             ## Generate ids of summaries.
             ##   - https://huggingface.co/transformers/v2.11.0/model_doc/bart.html#transformers.BartForConditionalGeneration.generate
             output = model.generate(
                 input_ids, 
-                attention_mask=attention_mask,
-                ## bos_token_id=tokenizer.bos_token_id,
-                ## eos_token_id=tokenizer.eos_token_id,
+                # attention_mask=attention_mask,
+                bos_token_id=tokenizer.bos_token_id,
+                eos_token_id=tokenizer.eos_token_id,
                 max_length=config.tar_max_length,
                 num_beams=config.beam_size,
                 length_penalty=config.length_penalty,
