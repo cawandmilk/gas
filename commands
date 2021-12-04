@@ -32,21 +32,19 @@ python finetune_plm_native.py \
 python finetune_plm_hftrainer.py \
     --train ./data/corpus.train \
     --valid ./data/corpus.valid \
-    --pretrained_model_name gogamza/kobart-summarization \
+    --pretrained_model_name gogamza/kobart-base-v1 \
     --per_replica_batch_size 48 \
     --lr 5e-5 \
     --weight_decay 0 \
-    --n_epochs 10 \
-    --model_fpath hft.gogamza.kobart-summarization.bs-48*2*1.lr-5e-5.wd-0.warmup-2.adamw.법률
+    --n_epochs 20 \
+    --model_fpath hft.gogamza.kobart-summarization.bs-48*2*1.lr-5e-5.wd-0.warmup-2.adamw
 
 ## Inference.
 python summarize.py \
     --test ./data/corpus.test \
-    --model_fpath ./ckpt/20211127-122739/hft.gogamza.kobart-summarization.bs-48*2*1.lr-5e-5.wd-0.warmup-2.adamw.법률.pth \
+    --model_fpath ./ckpt/20211203-182130/hft.gogamza.kobart-summarization.bs-48*2*1.lr-5e-5.wd-0.warmup-2.adamw.pth \
     --gpu_id 0 \
-    --batch_size 128 \
-    --beam_size 5 \
-    --length_penalty 2
+    --batch_size 128
 
 ## Auto-submission API.
 wget -O dacon_submit_api-0.0.4-py3-none-any.zip https://bit.ly/3gMPScE

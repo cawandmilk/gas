@@ -70,7 +70,11 @@ def save_predictions(sample_submission_path: Path, predictions: list, save_to: P
     ## Record it.
     ## Thus test datasets are already sorted by 'id', we don't need to
     ## worry about shuffing.
-    df.loc[:, "summary"] = np.array(predictions)
+    try:
+        df.loc[:, "summary"] = np.array(predictions)
+    except Exception as e:
+        print(e)
+        df.iloc[:len(np.array(predictions)), 1:] = np.array(predictions)
     
     ## Strip.
     df.loc[:, "summary"] = df.loc[:, "summary"].apply(lambda x: x.strip())

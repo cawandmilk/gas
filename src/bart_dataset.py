@@ -30,6 +30,7 @@ class TextAbstractSummarizationCollator():
 
         return torch.tensor([i + [self.tokenizer.pad_token_id] * (max_length_per_batch - len(i)) for i in sentences])
 
+
     def _train_collator(self, samples: dict) -> dict:
         texts = [s["text"] for s in samples]
         summaries = [s["summary"] for s in samples]
@@ -53,7 +54,7 @@ class TextAbstractSummarizationCollator():
         ##   2) Slice 'decoder_input_ids' as 'tar_max_length'.
         ##   3) Remove <BOS> token and append <EOS> token of each batched sentences.
         ##   4) Add paddings either in 'decoder_input_ids' and 'labels'.
-        decoder_input_ids = [[self.tokenizer.bos_token_id] + i for i in decoding]
+        decoder_input_ids = [[self.tokenizer.eos_token_id] + i for i in decoding] ## not <BOS> !!! (thus bidirectional)
         decoder_input_ids = [i[:self.tar_max_length] for i in decoder_input_ids]
         labels = [i[1:] + [self.tokenizer.eos_token_id] for i in decoder_input_ids]
 
@@ -87,7 +88,8 @@ class TextAbstractSummarizationCollator():
         input_ids = []
         for text in texts:
             text = self.tokenizer.encode(text)
-            text = [self.tokenizer.bos_token_id] + text[:self.inp_max_length - 2] + [self.tokenizer.eos_token_id]
+            # text = [self.tokenizer.eos_token_id] + text[:self.inp_max_length - 2] + [self.tokenizer.eos_token_id]
+            text = text[:self.inp_max_length]
 
             input_ids.append(text)
         

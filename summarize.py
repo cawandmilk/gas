@@ -50,8 +50,13 @@ def define_argparser():
     )
     p.add_argument(
         "--length_penalty",
-        type=int,
+        type=float,
         default=1.2,
+    )
+    p.add_argument(
+        "--no_repeat_ngram_size",
+        type=int,
+        default=3,
     )
     p.add_argument(
         "--inp_max_length", 
@@ -156,6 +161,7 @@ def main(config):
                 max_length=config.tar_max_length,
                 num_beams=config.beam_size,
                 length_penalty=config.length_penalty,
+                no_repeat_ngram_size=config.no_repeat_ngram_size,   ## trigram blocking
             )
             ## If you want to decode by each sentence, you may 
             ## call 'decode' fn, not 'batch_decode'.

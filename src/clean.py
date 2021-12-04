@@ -373,5 +373,5 @@ class CleanNewspaperArticle():
         if func != None:
             texts = func(texts)
 
-        texts = [i for i in texts if i != None]
+        texts = [i.strip() for i in texts if i != ""]
         return texts
