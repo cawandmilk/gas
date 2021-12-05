@@ -70,6 +70,7 @@ def define_argparser():
     ## - gogamza/kobart-base-v2
     ## - gogamza/kobart-summarization
     ## - ainize/kobart-news
+    ## - hyunwoongko/kobart
     p.add_argument(
         "--pretrained_model_name",
         type=str,
@@ -102,9 +103,14 @@ def define_argparser():
         default=1e-2,
     )
     p.add_argument(
+        "--gradient_accumulation_steps",
+        type=int,
+        default=1,
+    )
+    p.add_argument(
         "--inp_max_length", 
         type=int, 
-        default=512,
+        default=1024,
     )
     p.add_argument(
         "--tar_max_length", 
@@ -166,13 +172,14 @@ def main(config):
         evaluation_strategy="epoch",
         per_device_train_batch_size=config.per_replica_batch_size,
         per_device_eval_batch_size=config.per_replica_batch_size,
+        gradient_accumulation_steps=config.gradient_accumulation_steps,
         learning_rate=config.lr,
         weight_decay=config.weight_decay,
         warmup_ratio=config.warmup_ratio,
         num_train_epochs=config.n_epochs,
         logging_dir=logging_dir,
         logging_strategy="steps",
-        logging_steps=100,
+        logging_steps=10,
         save_strategy="epoch",
         # save_steps=1000,
         fp16=True,

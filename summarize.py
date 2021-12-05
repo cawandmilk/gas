@@ -61,7 +61,7 @@ def define_argparser():
     p.add_argument(
         "--inp_max_length", 
         type=int, 
-        default=512,
+        default=1024,
     )
     p.add_argument(
         "--tar_max_length", 
@@ -156,8 +156,9 @@ def main(config):
             output = model.generate(
                 input_ids, 
                 # attention_mask=attention_mask,
-                bos_token_id=tokenizer.bos_token_id,
-                eos_token_id=tokenizer.eos_token_id,
+                # bos_token_id=tokenizer.bos_token_id,
+                # eos_token_id=tokenizer.eos_token_id,
+                eos_token_id=1,
                 max_length=config.tar_max_length,
                 num_beams=config.beam_size,
                 length_penalty=config.length_penalty,
