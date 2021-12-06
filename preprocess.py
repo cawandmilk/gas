@@ -8,6 +8,7 @@ import pandas as pd
 from operator import itemgetter
 from pathlib import Path
 from tqdm import tqdm
+from typing import List, Dict
 
 from src.clean import CleanNewspaperArticle
 
@@ -77,7 +78,7 @@ def read_samples(raw_path: list, sort_dicts: bool = True) -> list:
     return documents
 
 
-def extract_lines(config, documents: list) -> dict:
+def extract_lines(config, documents: List[Dict]) -> dict:
     ## We will save to jsonl files.
     extracted_features = []
     cleaner = CleanNewspaperArticle()
@@ -85,28 +86,40 @@ def extract_lines(config, documents: list) -> dict:
     for document in tqdm(documents, total=len(documents)): 
         ## In train, valid dataset, we can get key "text".
         if document.get("text") != None:
-            f = {
-                "id": document["id"],
-                # "text": " ".join(cleaner(
-                #     [line["sentence"].strip() for line in itertools.chain(*document["text"])], 
-                #     document["media_name"],
-                # )),
-                "text": " ".join([line["sentence"].replace("\n", " ").strip() for line in itertools.chain(*document["text"])]), 
-                "summary": document["abstractive"][0], ## list -> element (str)
-            }
+            id = document["id"]
+
+            text = [line["sentence"].replace("\n", " ").strip() for line in itertools.chain(*document["text"])]
+            ## assert document["media_name"] in cleaner.media_name_to_function.keys(), f"Unknown media name: {document['media_name']}"
+            text = " ".join(cleaner(text, document["media_name"]))
+
+            summary = document["abstractive"][0].replace("\n", " ").strip()
+
+            ## If a document is total-advertisement, it can be skipped.
             ## Like "id" == "362852732", no abstractive summaries exists.
-            if f["summary"] == "":
+            if text == "" or summary == "":
                 continue
+
+            ## Gather all.
+            f = {
+                "id": id,
+                "text": text,
+                "summary": summary,
+            }
 
         ## In test dataset, we can get key "article_original".
         elif document.get("article_original") != None:
+            id = document["id"]
+
+            text = [line.replace("\n", " ").strip() for line in document["article_original"]]
+            ## assert document["media"] in cleaner.media_name_to_function.keys()
+            text = " ".join(cleaner(text, document["media"]))
+
+            if text == "":
+                raise AssertionError(f"'text' must not be empty: id={id}")
+
             f = {
-                "id": document["id"],
-                # "text": " ".join(cleaner(
-                #     [i.strip() for i in document["article_original"]], 
-                #     document["media"],
-                # )),
-                "text": " ".join([i.replace("\n", " ").strip() for i in document["article_original"]]),
+                "id": id,
+                "text": text,
             }
 
         else:

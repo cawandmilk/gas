@@ -159,6 +159,7 @@ def main(config):
         ".".join([
             Path(config.model_fpath).parts[-2],                 ## datetime
             *Path(config.model_fpath).name.split(".")[:-1],     ## moel_fpath
+            f"LP-{config.length_penalty:.1f}",                  ## length penalty
             "csv",
         ]),
     )

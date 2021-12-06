@@ -33,9 +33,17 @@ Input ids: 512 -> 768? 1024?
 
 ### Result (Private LB Scores)
 
-|Date|Model|Cleaning|Epoch|BS|Tr-loss|Vl-loss|LP|ROUGE-1|ROUGE-2|ROUGE-N|Note|
-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-|2021-12-06|gogamza/kobart-base-v1|X|10(7)|256(=16\*2\*8)|1.0466|1.2471|1.2|0.3671|0.1801|0.2778||
-|2021-12-06|gogamza/kobart-base-v1|X|10(7)|256(=16\*2\*8)|1.0466|1.2471|1.0|||||
-|2021-12-06|gogamza/kobart-base-v1|X|10(7)|256(=16\*2\*8)|1.0466|1.2471|0.8|||||
+* Fixed Params:
+  - Model: gogamza/kobart-base-v1
+  - Batch size: 256 (=16x2x8)
+    - Per replica batch size = 16 (Tesla V100 32GB VRAM)
+    - \# GPUs = 2
+    - Gradient accumulate steps = 8
+
+
+|Date|Cleaning|Epoch|Tr-loss|Vl-loss|LP|ROUGE-1|ROUGE-2|ROUGE-N|Note|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|2021-12-06|X|10(7)|1.0466|1.2471|1.2|0.3671|0.1801|0.2778||
+|2021-12-06|X|10(7)|1.0466|1.2471|1.0|0.3672|0.1798|0.2785||
+|2021-12-06|X|10(7)|1.0466|1.2471|0.8|0.3678|0.1803|0.2800|**final submission**|
 

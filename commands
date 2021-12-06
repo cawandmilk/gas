@@ -44,8 +44,8 @@ python finetune_plm_hftrainer.py \
 python summarize.py \
     --test ./data/test.tsv \
     --model_fpath ./ckpt/20211205-164445/hft.gogamza.kobart-base-v1.bs-16*2*8.lr-5e-5.wd-1e-2.warmup-2.adamw.pth \
-    --gpu_id 0 \
-    --length_penalty 1.0 \
+    --gpu_id 1 \
+    --length_penalty 0.8 \
     --batch_size 64
 
 ## Auto-submission API.
