@@ -31,11 +31,11 @@ Input ids: 512 -> 768? 1024?
 |valid|신문기사|30,122|4|
 
 
-### Result
+### Result (Private LB Scores)
 
-|Date|Model|Epoch|BS|LR|Warm-up|Opt|Tr-loss|Vl-loss|ROUGE-1|ROUGE-2|ROUGE-N|Note|
-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-|2021-11-24|gogamza/kobart-summarization|5|32\*1\*1|5e-5|0|RAdam|3.09|2.09?|**0.4061**|**0.2485**|**0.3299**|train w/ dev. (head 1000)|
-|2021-11-24|gogamza/kobart-base-v2|5|32\*1\*1|5e-5|0|RAdam|3.22|2.49?|0.0357|0.0038|0.0327|train w/ dev. (head 1000)|
-|2021-11-25|gogamza/kobart-base-v2|5|48\*1\*1|5e-5|0|RAdam|1.73|2.14|0.1062|0.0069|0.0792||
-|2021-11-27|gogamza/kobart-summarization|5|48\*2\*1|5e-5|0.2|AdamW||||||(only 법률)|
+|Date|Model|Cleaning|Epoch|BS|Tr-loss|Vl-loss|LP|ROUGE-1|ROUGE-2|ROUGE-N|Note|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|2021-12-06|gogamza/kobart-base-v1|X|10(7)|256(=16\*2\*8)|1.0466|1.2471|1.2|0.3671|0.1801|0.2778||
+|2021-12-06|gogamza/kobart-base-v1|X|10(7)|256(=16\*2\*8)|1.0466|1.2471|1.0|||||
+|2021-12-06|gogamza/kobart-base-v1|X|10(7)|256(=16\*2\*8)|1.0466|1.2471|0.8|||||
+

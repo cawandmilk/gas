@@ -2,7 +2,8 @@ import argparse
 import itertools
 import json
 import pprint
-import re
+
+import pandas as pd
 
 from operator import itemgetter
 from pathlib import Path
@@ -15,31 +16,21 @@ def define_argparser():
     p = argparse.ArgumentParser()
 
     p.add_argument(
-        "--raw_train_path",
+        "--raw_train",
         required=True,
     )
     p.add_argument(
-        "--raw_valid_path",
+        "--raw_valid",
         required=True,
     )
     p.add_argument(
-        "--raw_test_path",
+        "--raw_test",
         required=True,
     )
     p.add_argument(
         "--data",
         type=str,
         default="data",
-    )
-    p.add_argument(
-        "--inp_suffix",
-        type=str,
-        default="if",
-    )
-    p.add_argument(
-        "--tar_suffix",
-        type=str,
-        default="of",
     )
     
     config = p.parse_args()
@@ -86,7 +77,7 @@ def read_samples(raw_path: list, sort_dicts: bool = True) -> list:
     return documents
 
 
-def extract_lines(config, documents: list) -> tuple:
+def extract_lines(config, documents: list) -> dict:
     ## We will save to jsonl files.
     extracted_features = []
     cleaner = CleanNewspaperArticle()
@@ -96,21 +87,26 @@ def extract_lines(config, documents: list) -> tuple:
         if document.get("text") != None:
             f = {
                 "id": document["id"],
-                "text": "\t".join(cleaner(
-                    [line["sentence"] for line in itertools.chain(*document["text"])], 
-                    document["media_name"],
-                )),
+                # "text": " ".join(cleaner(
+                #     [line["sentence"].strip() for line in itertools.chain(*document["text"])], 
+                #     document["media_name"],
+                # )),
+                "text": " ".join([line["sentence"].replace("\n", " ").strip() for line in itertools.chain(*document["text"])]), 
                 "summary": document["abstractive"][0], ## list -> element (str)
             }
+            ## Like "id" == "362852732", no abstractive summaries exists.
+            if f["summary"] == "":
+                continue
 
         ## In test dataset, we can get key "article_original".
         elif document.get("article_original") != None:
             f = {
                 "id": document["id"],
-                "text": "\t".join(cleaner(
-                    document["article_original"], 
-                    document["media"],
-                )),
+                # "text": " ".join(cleaner(
+                #     [i.strip() for i in document["article_original"]], 
+                #     document["media"],
+                # )),
+                "text": " ".join([i.replace("\n", " ").strip() for i in document["article_original"]]),
             }
 
         else:
@@ -124,31 +120,11 @@ def extract_lines(config, documents: list) -> tuple:
 def save_lines(config, mode: str, documents: list) -> None:
     assert mode in ["train", "valid", "test"]
 
-    ## Naming.
-    ## Suffixes "if" and "of" are from linux command "dd".
-    ## It's not recommand to naming more then three words like "inp" & "tar".
-    ##   ex) {train | source} -> corpus.train.ip
-    ##   ex) {valid | target} -> corpus.valid.of
-    text_fname = ".".join(["corpus", mode, config.inp_suffix])
-    text_fpath = Path.cwd() / Path(config.data, text_fname)
+    ## Save as: ./data/train.tsv, ./data/valid.tsv, ./data/test.tsv.
+    fpath = Path.cwd() / Path(config.data, f"{mode}.tsv")
+    pd.DataFrame(documents).to_csv(fpath, sep="\t", encoding="utf-8")
 
-    summary_fname = ".".join(["corpus", mode, config.tar_suffix])
-    summary_fpath = Path.cwd() / Path(config.data, summary_fname)
-
-    ## Write texts.
-    with open(text_fpath, "w", encoding="utf-8") as f:
-        context = "\n".join([document["text"] for document in documents])
-        f.write(context)
-
-    print(f"File {text_fpath} saved.")
-
-    ## If summary is exists, then write it.
-    if documents[0].get("summary") != None:
-        with open(summary_fpath, "w", encoding="utf-8") as f:
-            context = "\n".join([document["summary"] for document in documents])
-            f.write(context)
-    
-        print(f"File {summary_fpath} saved.")
+    print(f"File {fpath} saved.")
 
 
 def main(config):
@@ -157,14 +133,9 @@ def main(config):
     print_config(config)
 
     ## Read original json/jsonl files.
-    tr_corpus = read_samples(config.raw_train_path)
-    vl_corpus = read_samples(config.raw_valid_path)
-    ts_corpus = read_samples(config.raw_test_path)
-
-    ## Check if it really sorted or not.
-    # pprint.PrettyPrinter(indent=4, sort_dicts=False).pprint(
-    #     [document["id"] for document in ts_corpus[:30]],
-    # )
+    tr_corpus = read_samples(config.raw_train)
+    vl_corpus = read_samples(config.raw_valid)
+    ts_corpus = read_samples(config.raw_test)
 
     ## Extract features.
     tr_documents = extract_lines(config, tr_corpus)

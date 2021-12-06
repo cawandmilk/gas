@@ -1,14 +1,14 @@
 ## EDA
-python eda.py \
-    --raw_train_path ./data/raw/Training \
-    --raw_valid_path ./data/raw/Validation \
-    --raw_test_path ./data/raw/Test
+# python eda.py \
+#     --raw_train ./data/raw/Training \
+#     --raw_valid ./data/raw/Validation \
+#     --raw_test ./data/raw/Test2
 
 ## Preprocess
 python preprocess.py \
-    --raw_train_path ./data/raw/Training \
-    --raw_valid_path ./data/raw/Validation \
-    --raw_test_path ./data/raw/Test
+    --raw_train ./data/raw/Training \
+    --raw_valid ./data/raw/Validation \
+    --raw_test ./data/raw/Test2
 
 ## Make dev dataset.
 head -n 1000 ./data/corpus.train.if > ./data/corpus.train.dev.if &
@@ -30,22 +30,23 @@ python finetune_plm_native.py \
 
 ## Train: hftariner.
 python finetune_plm_hftrainer.py \
-    --train ./data/corpus.train \
-    --valid ./data/corpus.valid \
-    --pretrained_model_name gogamza/kobart-base-v2 \
+    --train ./data/train.tsv \
+    --valid ./data/valid.tsv \
+    --pretrained_model_name gogamza/kobart-base-v1 \
     --per_replica_batch_size 16 \
     --lr 5e-5 \
     --weight_decay 1e-2 \
-    --gradient_accumulation_steps 1 \
+    --gradient_accumulation_steps 8 \
     --n_epochs 10 \
-    --model_fpath hft.gogamza.kobart-base-v2.bs-16*2*1.lr-5e-5.wd-1e-2.warmup-2.adamw
+    --model_fpath hft.gogamza.kobart-base-v1.bs-16*2*8.lr-5e-5.wd-1e-2.warmup-2.adamw
 
 ## Inference.
 python summarize.py \
-    --test ./data/corpus.test \
-    --model_fpath ./ckpt/20211204-223157/hft.gogamza.kobart-base-v2.bs-16*2*1.lr-5e-5.wd-1e-2.warmup-2.adamw.pth \
+    --test ./data/test.tsv \
+    --model_fpath ./ckpt/20211205-164445/hft.gogamza.kobart-base-v1.bs-16*2*8.lr-5e-5.wd-1e-2.warmup-2.adamw.pth \
     --gpu_id 0 \
-    --batch_size 32
+    --length_penalty 1.0 \
+    --batch_size 64
 
 ## Auto-submission API.
 wget -O dacon_submit_api-0.0.4-py3-none-any.zip https://bit.ly/3gMPScE
@@ -53,4 +54,4 @@ unzip dacon_submit_api-0.0.4-py3-none-any.zip
 pip install dacon_submit_api-0.0.4-py3-none-any.whl
 
 ## Remote server terminal.
-(server) tensorboard --logdir ./logs/20211125-170433/run --port 8888 --bind_all
+(server) tensorboard --logdir ./logs/20211205-164445/run --port 8888 --bind_all

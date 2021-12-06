@@ -279,76 +279,76 @@ class CleanNewspaperArticle():
         return texts.split("\n")
 
 
-    # def _cnews(self, article_original: List[str]) -> List[str]:
-    #     """ """
-    #     texts = []
-    #     for sentence in article_original:
-    #         texts.append(sentence)
-    #     return texts
+    def _cnews(self, article_original: List[str]) -> List[str]:
+        """ """
+        texts = []
+        for sentence in article_original:
+            texts.append(sentence)
+        return texts
 
 
-    # def _cnews(self, article_original: List[str]) -> List[str]:
-    #     """ """
-    #     texts = []
-    #     for sentence in article_original:
-    #         texts.append(sentence)
-    #     return texts
+    def _cnews(self, article_original: List[str]) -> List[str]:
+        """ """
+        texts = []
+        for sentence in article_original:
+            texts.append(sentence)
+        return texts
 
 
-    # def _cnews(self, article_original: List[str]) -> List[str]:
-    #     """ """
-    #     texts = []
-    #     for sentence in article_original:
-    #         texts.append(sentence)
-    #     return texts
+    def _cnews(self, article_original: List[str]) -> List[str]:
+        """ """
+        texts = []
+        for sentence in article_original:
+            texts.append(sentence)
+        return texts
 
 
-    # def _cnews(self, article_original: List[str]) -> List[str]:
-    #     """ """
-    #     texts = []
-    #     for sentence in article_original:
-    #         texts.append(sentence)
-    #     return texts
+    def _cnews(self, article_original: List[str]) -> List[str]:
+        """ """
+        texts = []
+        for sentence in article_original:
+            texts.append(sentence)
+        return texts
 
 
-    # def _cnews(self, article_original: List[str]) -> List[str]:
-    #     """ """
-    #     texts = []
-    #     for sentence in article_original:
-    #         texts.append(sentence)
-    #     return texts
+    def _cnews(self, article_original: List[str]) -> List[str]:
+        """ """
+        texts = []
+        for sentence in article_original:
+            texts.append(sentence)
+        return texts
 
 
-    # def _cnews(self, article_original: List[str]) -> List[str]:
-    #     """ """
-    #     texts = []
-    #     for sentence in article_original:
-    #         texts.append(sentence)
-    #     return texts
+    def _cnews(self, article_original: List[str]) -> List[str]:
+        """ """
+        texts = []
+        for sentence in article_original:
+            texts.append(sentence)
+        return texts
 
 
-    # def _cnews(self, article_original: List[str]) -> List[str]:
-    #     """ """
-    #     texts = []
-    #     for sentence in article_original:
-    #         texts.append(sentence)
-    #     return texts
+    def _cnews(self, article_original: List[str]) -> List[str]:
+        """ """
+        texts = []
+        for sentence in article_original:
+            texts.append(sentence)
+        return texts
 
 
-    # def _cnews(self, article_original: List[str]) -> List[str]:
-    #     """ """
-    #     texts = []
-    #     for sentence in article_original:
-    #         texts.append(sentence)
-    #     return texts
+    def _cnews(self, article_original: List[str]) -> List[str]:
+        """ """
+        texts = []
+        for sentence in article_original:
+            texts.append(sentence)
+        return texts
 
 
-    # def _cnews(self, article_original: List[str]) -> List[str]:
-    #     """ """
-    #     texts = []
-    #     for sentence in article_original:
-    #         texts.append(sentence)
-    #     return texts
+    def _cnews(self, article_original: List[str]) -> List[str]:
+        """ """
+        texts = []
+        for sentence in article_original:
+            texts.append(sentence)
+        return texts
 
 
     def __call__(self, article_original: List[str], media_name: str) -> List[str]:

@@ -4,7 +4,7 @@ import torch_optimizer
 from transformers import Trainer
 from transformers import TrainingArguments
 from transformers import PreTrainedTokenizerFast, BartForConditionalGeneration
-from transformers import get_linear_schedule_with_warmup
+# from transformers import get_linear_schedule_with_warmup
 
 import argparse
 import datetime
@@ -12,9 +12,9 @@ import pprint
 
 from pathlib import Path
 
-from src.bart_dataset import TextAbstractSummarizationCollator
+# from src.bart_dataset import TextAbstractSummarizationCollator
 from src.bart_dataset import TextAbstractSummarizationDataset
-from src.utils import read_text
+# from src.utils import read_tsv
 
 
 def define_argparser():
@@ -34,21 +34,21 @@ def define_argparser():
         required=True,
         help="Validation set file name except the extention. (ex: valid.en --> valid)",
     )
-    p.add_argument(
-        "--lang",
-        type=str,
-        default="ifof",
-    )
-    p.add_argument(
-        "--inp_suffix",
-        type=str,
-        default="if",
-    )
-    p.add_argument(
-        "--tar_suffix",
-        type=str,
-        default="of",
-    )
+    # p.add_argument(
+    #     "--lang",
+    #     type=str,
+    #     default="ifof",
+    # )
+    # p.add_argument(
+    #     "--inp_suffix",
+    #     type=str,
+    #     default="if",
+    # )
+    # p.add_argument(
+    #     "--tar_suffix",
+    #     type=str,
+    #     default="of",
+    # )
     p.add_argument(
         "--data",
         type=str,
@@ -108,12 +108,12 @@ def define_argparser():
         default=1,
     )
     p.add_argument(
-        "--inp_max_length", 
+        "--inp_max_len", 
         type=int, 
         default=1024,
     )
     p.add_argument(
-        "--tar_max_length", 
+        "--tar_max_len", 
         type=int, 
         default=128,
     )
@@ -123,18 +123,15 @@ def define_argparser():
     return config
 
 
-def get_datasets(config):
-    ## Get list of documents.
-    tr_documents = read_text(config, fpath=Path(config.train))
-    vl_documents = read_text(config, fpath=Path(config.valid))
-
-    tr_texts, tr_summaries = tr_documents["texts"], tr_documents["summaries"]
-    vl_texts, vl_summaries = vl_documents["texts"], vl_documents["summaries"]
-
-    train_dataset = TextAbstractSummarizationDataset(tr_texts, tr_summaries)
-    valid_dataset = TextAbstractSummarizationDataset(vl_texts, vl_summaries)
-
-    return train_dataset, valid_dataset
+def get_datasets(config, tokenizer, fpath: Path, shuffle: bool = True, mode: str = "train"):
+    return TextAbstractSummarizationDataset(
+        tokenizer,
+        fpath,
+        inp_max_len=config.inp_max_len,
+        tar_max_len=config.tar_max_len,
+        shuffle=shuffle,
+        mode=mode,
+    )
 
 
 # def get_optimizers(config, num_training_steps: int):
@@ -157,7 +154,8 @@ def main(config):
     ## Get pretrained tokenizer.
     tokenizer = PreTrainedTokenizerFast.from_pretrained(config.pretrained_model_name)
     ## Get datasets and index to label map.
-    train_dataset, valid_dataset = get_datasets(config)
+    tr_ds = get_datasets(config, tokenizer, fpath=Path(config.train))
+    vl_ds = get_datasets(config, tokenizer, fpath=Path(config.valid), shuffle=False)
 
     ## Get pretrained model with specified softmax layer.
     model = BartForConditionalGeneration.from_pretrained(config.pretrained_model_name)
@@ -192,14 +190,14 @@ def main(config):
     trainer = Trainer(
         model=model,
         args=training_args,
-        data_collator=TextAbstractSummarizationCollator(
-            tokenizer,
-            inp_max_length=config.inp_max_length,
-            tar_max_length=config.tar_max_length,
-            with_text=False,
-        ),
-        train_dataset=train_dataset,
-        eval_dataset=valid_dataset,
+        # data_collator=TextAbstractSummarizationCollator(
+        #     tokenizer,
+        #     inp_max_length=config.inp_max_length,
+        #     tar_max_length=config.tar_max_length,
+        #     with_text=False,
+        # ),
+        train_dataset=tr_ds,
+        eval_dataset=vl_ds,
         # compute_metrics=compute_metrics,
     )
 

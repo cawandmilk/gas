@@ -155,7 +155,7 @@ def main(config):
     #         with open(save_path / Path(media_name + ".json"), "w", encoding="utf-8") as f:
     #             json.dump(splited_documents[media_name], f, indent=4, ensure_ascii=False)
 
-    save_path = Path(config.raw_test_path, "test_.json")
+    save_path = Path(config.raw_test_path, "new_test_.json")
     with open(save_path, "w", encoding="utf-8") as f:
         json.dump(ts_corpus, f, indent=4, ensure_ascii=False)
 

@@ -11,8 +11,8 @@ import numpy as np
 from pathlib import Path
 from tqdm import tqdm
 
-from src.bart_dataset import TextAbstractSummarizationCollator, TextAbstractSummarizationDataset
-from src.utils import read_text, save_predictions
+from finetune_plm_hftrainer import get_datasets
+from src.utils import save_predictions
 
 
 def define_argparser():
@@ -26,11 +26,6 @@ def define_argparser():
         "--test",
         required=True,
         help="Training set file name except the extention. (ex: train.en --> train)",
-    )
-    p.add_argument(
-        "--lang",
-        type=str,
-        default="ifof",
     )
     p.add_argument(
         "--gpu_id", 
@@ -59,19 +54,19 @@ def define_argparser():
         default=3,
     )
     p.add_argument(
-        "--inp_max_length", 
+        "--inp_max_len", 
         type=int, 
         default=1024,
     )
     p.add_argument(
-        "--tar_max_length", 
+        "--tar_max_len", 
         type=int, 
         default=128,
     )
     p.add_argument(
         "--sample_submission_path",
         type=str,
-        default=os.path.join("data", "raw", "Test", "sample_submission.csv"),
+        default=os.path.join("data", "raw", "Test2", "new_sample_submission.csv"),
     )
     p.add_argument(
         "--submission_path",
@@ -86,28 +81,6 @@ def define_argparser():
     config = p.parse_args()
 
     return config
-
-
-def get_datasets(config, tokenizer):
-    ## Get list of documents.
-    documents = read_text(config, fpath=Path(config.test))
-
-    ts_texts = documents["texts"]
-
-    test_loader = torch.utils.data.DataLoader(
-        TextAbstractSummarizationDataset(ts_texts),
-        batch_size=config.batch_size,
-        shuffle=False,
-        collate_fn=TextAbstractSummarizationCollator(
-            tokenizer, 
-            inp_max_length=config.inp_max_length,
-            tar_max_length=config.tar_max_length,
-            with_text=False,
-            is_train=False,
-        ),
-    )
-
-    return test_loader
 
 
 def main(config):
@@ -126,7 +99,12 @@ def main(config):
     tokenizer = PreTrainedTokenizerFast.from_pretrained(train_config.pretrained_model_name)
 
     ## Get datasets and index to label map.
-    test_loader = get_datasets(config, tokenizer)
+    ts_ds = get_datasets(config, tokenizer, fpath=Path(config.test), shuffle=False, mode="test")
+    ts_loader = torch.utils.data.DataLoader(
+        ts_ds,
+        batch_size=config.batch_size,
+        shuffle=False,
+    )
 
     ## We will not get lines by stdin, but file path.
     # lines = read_text()
@@ -146,8 +124,7 @@ def main(config):
         model.eval()
 
         outputs = []
-        raw_outputs = []
-        for mini_batch in tqdm(test_loader, total=len(test_loader)):
+        for mini_batch in tqdm(ts_loader, total=len(ts_loader)):
             input_ids = mini_batch["input_ids"].to(device)
             # attention_mask = mini_batch["attention_mask"].to(device)
 
@@ -158,11 +135,13 @@ def main(config):
                 # attention_mask=attention_mask,
                 # bos_token_id=tokenizer.bos_token_id,
                 # eos_token_id=tokenizer.eos_token_id,
-                eos_token_id=1,
-                max_length=config.tar_max_length,
-                num_beams=config.beam_size,
-                length_penalty=config.length_penalty,
-                no_repeat_ngram_size=config.no_repeat_ngram_size,   ## trigram blocking
+                max_length=config.tar_max_len,          ## maximum summarization size
+                min_length=config.tar_max_len // 4,     ## minimum summarization size
+                early_stopping=True,                    ## stop the beam search when at least 'num_beams' sentences are finished per batch
+                num_beams=config.beam_size,             ## beam search size
+                eos_token_id=tokenizer.eos_token_id,    ## 1
+                length_penalty=config.length_penalty,   ## value > 1.0 in order to encourage the model to produce longer sequences
+                no_repeat_ngram_size=config.no_repeat_ngram_size,   ## same as 'trigram blocking'
             )
             ## If you want to decode by each sentence, you may 
             ## call 'decode' fn, not 'batch_decode'.
