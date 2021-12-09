@@ -8,25 +8,26 @@
 python preprocess.py \
     --raw_train ./data/raw/Training \
     --raw_valid ./data/raw/Validation \
-    --raw_test ./data/raw/Test2
+    --raw_test ./data/raw/Test \
+    --clean
 
 ## Make dev dataset.
-head -n 1000 ./data/corpus.train.if > ./data/corpus.train.dev.if &
-head -n 1000 ./data/corpus.train.of > ./data/corpus.train.dev.of &
-head -n 1000 ./data/corpus.valid.if > ./data/corpus.valid.dev.if &
-head -n 1000 ./data/corpus.valid.of > ./data/corpus.valid.dev.of &
+# head -n 1000 ./data/train > ./data/train.dev &
+# head -n 1000 ./data/train > ./data/train.dev &
+# head -n 1000 ./data/valid > ./data/valid.dev &
+# head -n 1000 ./data/valid > ./data/valid.dev &
 
 ## Train: native
-python finetune_plm_native.py \
-    --train ./data/corpus.train.dev \
-    --valid ./data/corpus.valid.dev \
-    --gpu_id 0 \
-    --max_grad_norm 1e+8 \
-    --batch_size 48 \
-    --lr 5e-5 \
-    --n_epochs 5 \
-    --use_radam \
-    --model_fpath hft.gogamza.kobart-summarization.bs-48.lr-5e-5.warmup-2.radam.dev
+# python finetune_plm_native.py \
+#     --train ./data/train.tsv \
+#     --valid ./data/valid.tsv \
+#     --gpu_id 0 \
+#     --max_grad_norm 1e+8 \
+#     --batch_size 48 \
+#     --lr 5e-5 \
+#     --n_epochs 10 \
+#     --use_radam \
+#     --model_fpath hft.gogamza.kobart-base-v1.bs-16.lr-5e-5.warmup-2.radam.
 
 ## Train: hftariner.
 python finetune_plm_hftrainer.py \
@@ -43,8 +44,8 @@ python finetune_plm_hftrainer.py \
 ## Inference.
 python summarize.py \
     --test ./data/test.tsv \
-    --model_fpath ./ckpt/20211205-164445/hft.gogamza.kobart-base-v1.bs-16*2*8.lr-5e-5.wd-1e-2.warmup-2.adamw.pth \
-    --gpu_id 1 \
+    --model_fpath ./ckpt/20211208-144727/checkpoint-12708 \
+    --gpu_id 0 \
     --length_penalty 0.8 \
     --batch_size 64
 
@@ -54,4 +55,4 @@ unzip dacon_submit_api-0.0.4-py3-none-any.zip
 pip install dacon_submit_api-0.0.4-py3-none-any.whl
 
 ## Remote server terminal.
-(server) tensorboard --logdir ./logs/20211205-164445/run --port 8888 --bind_all
+tensorboard --logdir ./logs --port 8888 --bind_all

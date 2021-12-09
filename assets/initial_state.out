@@ -1,0 +1,25 @@
+./data
+└── [  52]  raw
+    ├── [  94]  Test
+    │   ├── [129K]  new_sample_submission.csv
+    │   ├── [ 21M]  new_test_.json
+    │   ├── [ 34M]  new_test.jsonl
+    │   └── [  53]  old
+    │       ├── [ 81K]  sample_submission.csv
+    │       └── [ 19M]  test.jsonl
+    ├── [ 231]  Training
+    │   ├── [ 90M]  법률_train_original.json
+    │   ├── [346M]  사설잡지_train_original.json
+    │   ├── [1.2G]  신문기사_train_original.json
+    │   ├── [ 18M]  법률_train_original.zip
+    │   ├── [ 83M]  사설잡지_train_original.zip
+    │   └── [296M]  신문기사_train_original.zip
+    └── [ 231]  Validation
+        ├── [8.5M]  법률_valid_original.json
+        ├── [ 35M]  사설잡지_valid_original.json
+        ├── [140M]  신문기사_valid_original.json
+        ├── [1.6M]  법률_valid_original.zip
+        ├── [7.9M]  사설잡지_valid_original.zip
+        └── [ 34M]  신문기사_valid_original.zip
+
+5 directories, 17 files

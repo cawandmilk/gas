@@ -9,3 +9,6 @@ token
 
 **/.ipynb_checkpoints
 **/__pycache__
+
+Dockerfile.*
+docker-compose.yml

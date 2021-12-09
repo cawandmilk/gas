@@ -1,6 +1,9 @@
 import torch
 
+import tqdm
+
 import numpy as np
+import pandas as pd
 
 from pathlib import Path
 from typing import List, Dict
@@ -8,180 +11,121 @@ from typing import List, Dict
 from src.utils import read_tsv
 
 
-# class TextAbstractSummarizationCollator():
-
-#     def __init__(
-#         self, 
-#         tokenizer, 
-#         inp_max_length: int, 
-#         tar_max_length: int, 
-#         with_text: bool = True,
-#         is_train: bool = True,
-#         ignore_index: int = -100,
-#     ):
-#         self.tokenizer = tokenizer
-#         self.inp_max_length = inp_max_length
-#         self.tar_max_length = tar_max_length
-#         self.with_text = with_text
-#         self.is_train = is_train
-#         self.ignore_index = ignore_index
-
-
-#     def _pad(self, sentences: List[str], token_id: int, max_length: int) -> torch.tensor:
-#         ## We don't want to slice in this function, just add pad.
-#         assert all([len(i) <= max_length for i in sentences])
-
-#         ## max_lenght: max length of current batch.
-#         ## target_max_length != max_length
-#         max_length_per_batch = max([len(i) for i in sentences])
-
-#         return torch.tensor([i + [self.tokenizer.pad_token_id] * (max_length_per_batch - len(i)) for i in sentences])
-
-
-#     def _train_collator(self, samples: List[Dict[str, str]]) -> Dict[str, List[Union[int, float]]]:
-#         ## Unpack.
-#         texts = [s["text"] for s in samples]
-#         summaries = [s["summary"] for s in samples]
-
-#         ## Input (text).
-#         encoding = self.tokenizer(
-#             texts,
-#             padding=True,
-#             truncation=True,
-#             return_tensors="pt",
-#             max_length=self.inp_max_length,
-#         )
-#         input_ids = encoding["input_ids"]
-#         attention_mask = encoding["attention_mask"] ## to ignore weights of padding position
-
-#         ## Target (summary).
-#         decoding = [self.tokenizer.encode(
-#             i,
-#             padding=False,
-#             add_special_tokens=False,
-#         ) for i in summaries]
-
-#         ## Add special tokens. (EOS)
-#         decoder_input_ids = [[self.tokenizer.bos_token_id] + i for i in decoding]   ## not <BOS>, but <EOS>
-#         decoder_input_ids = [i[:self.tar_max_length] for i in decoder_input_ids]
-
-#         labels = [i[1:] + [self.tokenizer.eos_token_id] for i in decoder_input_ids]
-        
-#         ## Pad with 'pad_token_id(=3)' or 'ignore_index(=-100)'.
-#         decoder_input_ids = self._pad(decoder_input_ids, self.tokenizer.pad_token_id, self.tar_max_length)
-#         labels = self._pad(labels, self.ignore_index, self.tar_max_length)
-
-#         ## Attention mask.
-#         # decoder_attention_mask = decoder_input_ids.ne(self.tokenizer.pad_token_id).float()
-#         decoder_attention_mask = decoder_input_ids.ne(self.tokenizer.pad_token_id).float()
-
-#         ## Pack as pre-defined arguments:
-#         ##   - https://huggingface.co/transformers/model_doc/bart.html
-#         return_value = {
-#             "input_ids": input_ids,
-#             "attention_mask": attention_mask,
-#             "decoder_input_ids": decoder_input_ids,
-#             "decoder_attention_mask": decoder_attention_mask,
-#             "labels": labels,
-#         }
-#         if self.with_text:
-#             return_value["text"] = texts
-
-#         return return_value
-
-
-#     def _test_collator(self, samples: List[Dict[str, str]]) -> Dict[str, List[int]]:
-#         texts = [s["text"] for s in samples]
-
-#         encoding = [self.tokenizer.encode(
-#             i,
-#             padding=False,
-#             add_special_tokens=False,
-#         ) for i in texts]
-
-#         input_ids = [[self.tokenizer.eos_token_id] + i for i in encoding]   ## not <BOS>, but <EOS>
-#         input_ids = [i[:self.tar_max_length] for i in input_ids]
-        
-#         input_ids = self._pad(input_ids, self.ignore_index, self.inp_max_length)
-
-#         ## Pack as pre-defined arguments:
-#         ##   - https://huggingface.co/gogamza/kobart-summarization
-#         return_value = {
-#             "input_ids": input_ids,
-#             # "attention_mask": attention_mask,
-#         }
-#         if self.with_text:
-#             return_value["text"] = texts
-
-#         return return_value
-
-
-#     def __call__(self, samples: dict) -> dict:
-#         return self._train_collator(samples) if self.is_train else self._test_collator(samples)
-
-
 class TextAbstractSummarizationDataset(torch.utils.data.Dataset):
 
     def __init__(
-        self, 
+        self,
         tokenizer,
         fpath: Path,
-        inp_max_len: int = 1024,
-        tar_max_len: int = 128,
-        ignore_index: int = -100, ## pad to labels
-        shuffle: bool = True,
-        seed: int = 42,
         mode: str = "train",
     ):
-        self.tokenizer = tokenizer
+        super(TextAbstractSummarizationDataset, self).__init__()
+
         self.df = read_tsv(fpath)
-        self.len = self.df.shape[0]
+        # self.tok = tokenizer -> don't keep
+        
+        ## Mode.
+        assert mode in ["train", "test"]
+        self.mode = mode
+
+        ## Apply tokenize first to speed up in training phase and make code more simply.
+        tqdm.tqdm.pandas(desc="Tokenizing input texts")
+        self.df.loc[:, "text_tok"] = self.df.loc[:, "text"].progress_apply(lambda x: tokenizer.encode(x))
+        self.df.loc[:, "text_tok_len"] = self.df.loc[:, "text_tok"].apply(lambda x: len(x))
+        if self.mode == "train":
+            tqdm.tqdm.pandas(desc="Tokenizing target summaries")
+            self.df.loc[:, "summary_tok"] = self.df.loc[:, "summary"].progress_apply(lambda x: tokenizer.encode(x))
+            self.df.loc[:, "summary_tok_len"] = self.df.loc[:, "summary_tok"].apply(lambda x: len(x))
+
+        ## Sort by tokenized length with tqdm progress bar.
+        ## 
+        ## By sorting sequentially, starting with the longest sentence, 
+        ## we can determine the maximum VRAM size the model is using for
+        ## training. That is, if OOM does not occur for the maximum VRAM
+        ## size at the beginning of training, it is guaranteed that OOM
+        ## does not occur during training.
+        self.df.sort_values(by=["text_tok_len"], axis=0, ascending=False, inplace=True)
+
+    
+    def __len__(self) -> int:
+        return self.df.shape[0]
+
+
+    def __getitem__(self, idx: int) -> Dict[str, List[int]]:
+        instance = self.df.iloc[idx]
+
+        return_value = {
+            "id": instance["id"], ## for sorting in inference mode
+            "text": instance["text_tok"],
+        }
+        if self.mode == "train":
+            return_value["summary"] = instance["summary_tok"]
+        
+        return return_value
+
+
+class TextAbstractSummarizationCollator():
+
+    def __init__(
+        self,
+        bos_token_id: int,
+        eos_token_id: int,
+        pad_token_id: int,
+        inp_max_len: int = 1024,
+        tar_max_len: int = 256,
+        ignore_index: int = -100,
+        mode: str = "train",
+    ):
+        super(TextAbstractSummarizationCollator, self).__init__()
+
+        self.bos_token_id = bos_token_id
+        self.eos_token_id = eos_token_id
+        self.pad_token_id = pad_token_id
         self.inp_max_len = inp_max_len
         self.tar_max_len = tar_max_len
         self.ignore_index = ignore_index
 
-        ## Check nan.
-        assert self.df.isnull().sum().sum() == 0
-
-        ## Shuffle dataset.
-        if shuffle:
-            self.df = self.df.sample(frac=1, random_state=seed).reset_index(drop=True)
-
         ## Mode.
         assert mode in ["train", "test"]
         self.mode = mode
-    
 
-    def _pad(self, texts: List[int], max_len: int, token_id: int) -> List[int]:
-        if len(texts) < max_len:
-            texts = np.concatenate([texts, [token_id] * (max_len - len(texts))])
-        else:
-            texts = np.array(texts[:max_len])
 
-        return texts
+    def _pad(self, sentences: List[List[int]], token_id: int) -> np.ndarray:
+        ## We will pad as max length per batch, not "inp_max_len(=1024, etc)".
+        max_length_per_batch = max([len(i) for i in sentences])
 
-    
-    def _get_item_for_train_mode(self, idx: int) -> Dict[str, torch.tensor]:
-        ## Withdraw columns.
-        instance = self.df.iloc[idx]
+        ## Stack as dimension 0 (batch dimension).
+        ## "token_id" can be "tokenizer.pad_token_id(=3)" or "ignore_index(=-100)"
+        return np.stack([i + [token_id] * (max_length_per_batch - len(i)) for i in sentences], axis=0)
 
-        ## Encoding inputs.
-        input_ids = self.tokenizer.encode(instance["text"])
-        input_ids = self._pad(input_ids, max_len=self.inp_max_len, token_id=self.tokenizer.pad_token_id)
 
-        ## Decoding inputs.
-        decoder_input_ids = self.tokenizer.encode(instance["summary"])
-        decoder_input_ids = np.concatenate([[self.tokenizer.eos_token_id], decoder_input_ids])
-        labels = np.concatenate([decoder_input_ids[1:], [self.tokenizer.eos_token_id]])
+    def _train_collator(self, samples: List[Dict[str, List[int]]]) -> Dict[str, List[int]]:
+        ## Unpack.
 
-        ## Padding.
-        decoder_input_ids = self._pad(decoder_input_ids, max_len=self.tar_max_len, token_id=self.tokenizer.pad_token_id)
-        labels = self._pad(labels, max_len=self.tar_max_len, token_id=self.ignore_index) ## pad with -100
+        ## If input max length > 1024, you can see below error:
+        ##   1) Assertion `srcIndex < srcSelectDimSize` failed
+        ##   2) Device-side assert triggered
+        tokenized_texts     = [s["text"][:self.inp_max_len]        for s in samples]
+        tokenized_summaries = [s["summary"][:self.tar_max_len - 1] for s in samples] ## <bos> or <eos> token index
 
-        ## Attention mask.
-        attention_mask = (input_ids != 0).astype(float) ## original: compare with 'self.tokenizer.pad_token_id'.
-        decoder_attention_mask = (decoder_input_ids != 0).astype(float)
+        ## Inputs for encoder.
+        input_ids = self._pad(tokenized_texts, token_id=self.pad_token_id)
+        attention_mask = (input_ids != self.pad_token_id).astype(float)
 
+        ## Inputs for decoder (generator).
+        decoder_input_ids = [[self.bos_token_id] + i for i in tokenized_summaries]      ## bos? eos?
+        decoder_input_ids = self._pad(decoder_input_ids, token_id=self.pad_token_id)    ## eos
+        decoder_attention_mask = (decoder_input_ids != self.pad_token_id).astype(float)
+
+        ## Answer.
+        labels = [i + [self.eos_token_id] for i in tokenized_summaries]
+        labels = self._pad(labels, token_id=self.ignore_index) ## why no "padding_id" ???
+
+        ## We ensure that generator's inputs' and outputs' shapes are equal.
+        assert decoder_input_ids.shape == labels.shape
+        
+        ## Pack as pre-defined arguments:
+        ## See: https://huggingface.co/docs/transformers/model_doc/bart#transformers.BartForConditionalGeneration
         return {
             "input_ids":                torch.from_numpy(input_ids),
             "attention_mask":           torch.from_numpy(attention_mask),
@@ -190,25 +134,25 @@ class TextAbstractSummarizationDataset(torch.utils.data.Dataset):
             "labels":                   torch.from_numpy(labels),
         }
 
-    def _get_item_for_test_mode(self, idx: int) -> Dict[str, torch.tensor]:
-        ## Withdraw columns.
-        instance = self.df.iloc[idx]
 
-        ## Encoder inputs.
-        input_ids = self.tokenizer.encode(instance["text"])
-        input_ids = np.concatenate([[self.tokenizer.eos_token_id], input_ids])
+    def _test_collator(self, samples: List[Dict[str, List[int]]]) -> Dict[str, List[int]]:
+        ## Unpack.
+        ids             = [s["id"]                      for s in samples]
+        tokenized_texts = [s["text"][:self.inp_max_len] for s in samples] ## no <bos> token included
 
-        ## Padding.
-        input_ids = self._pad(input_ids, max_len=self.inp_max_len, token_id=self.tokenizer.pad_token_id)
+        ## Inputs for encoder.
+        input_ids = self._pad(tokenized_texts, token_id=self.pad_token_id)
+        attention_mask = (input_ids != self.pad_token_id).astype(float)
 
+        ## Pack as pre-defined arguments:
+        ## See: https://huggingface.co/docs/transformers/model_doc/bart#transformers.BartForConditionalGeneration
         return {
-            "input_ids": torch.from_numpy(input_ids),
+            "input_ids":        torch.from_numpy(input_ids),
+            "attention_mask":   torch.from_numpy(attention_mask),
+            ## Additional information to make answer.
+            "id":               ids,
         }
 
 
-    def __len__(self) -> int:
-        return self.len
-    
-
-    def __getitem__(self, idx: int) -> Dict[str, torch.tensor]:
-        return self._get_item_for_train_mode(idx) if self.mode == "train" else self._get_item_for_test_mode(idx)
+    def __call__(self, samples: List[Dict[str, List[int]]]) -> Dict[str, List[int]]:
+        return self._train_collator(samples) if self.mode == "train" else self._test_collator(samples)

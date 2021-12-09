@@ -1,12 +1,6 @@
 import re
 
-from typing import Callable, List
-
-
-## Regex tutorial: 
-##  - https://inbum.github.io/python/2018/04/26/python-regex/
-##  - https://nachwon.github.io/regular-expressions/
-##  - https://ko.wikipedia.org/wiki/%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD%EC%9D%98_%EC%A0%84%ED%99%94%EB%B2%88%ED%98%B8_%EC%B2%B4%EA%B3%84
+from typing import List
 
 
 class CleanNewspaperArticleBase():
@@ -58,6 +52,22 @@ class CleanNewspaperArticleBase():
 
 
     @staticmethod
+    def remove_phone_number(article_original: List[str]) -> List[str]:
+        phone_pattern = re.compile(r"""(
+            (\d{2}|\(\d{2}\)|\d{3}|\(\d{3}\))?      ## 2 or 3 words include "(...)" patterns -> optional
+            (|-|\.)?                                ## sep word: "." or "-"
+            (\d{3}|\d{4})                           ## 3 or 4 numbers
+            (\s|-|\.)                               ## sep word: "." or "-"
+            (\d{4})                                 ## 4 numbers
+        )""", re.VERBOSE | re.MULTILINE)  
+
+        texts = "\n".join(article_original)
+        texts = phone_pattern.sub("", texts)
+
+        return texts.split("\n")
+
+
+    @staticmethod
     def remove_brack_sentence(article_original: List[str]) -> List[str]:
         bracket_1_pattern = re.compile(r"\s?<.*>", re.MULTILINE)        ## e.g. "<OOO씨 제공>"
         bracket_2_pattern = re.compile(r"\s?\(.*\)", re.MULTILINE)      ## e.g. 
@@ -71,31 +81,15 @@ class CleanNewspaperArticleBase():
         return texts.split("\n")
 
 
-    # @staticmethod
-    # def remove_supplementary_sentence(article_original: List[str]) -> List[str]:
-    #     ## e.g. "/광주시양궁협회 제공"
-    #     ## But, it may be an important sentence... (e.g. id="334957827")
-    #     supplementary_sentence_pattern = re.compile(r"^\s?[▶|\/][.]*", re.MULTILINE)
-
-    #     texts = "\n".join(article_original)
-    #     texts = supplementary_sentence_pattern.sub("", texts)
-        
-    #     return texts.split("\n")
-
-
     @staticmethod
-    def replace_phone_number(article_original: List[str]) -> List[str]:
-        phone_pattern = re.compile(r"""(
-            (\d{2}|\(\d{2}\)|\d{3}|\(\d{3}\))?      ## 2 or 3 words include "(...)" patterns -> optional
-            (|-|\.)?                                ## sep word: "." or "-"
-            (\d{3}|\d{4})                           ## 3 or 4 numbers
-            (\s|-|\.)                               ## sep word: "." or "-"
-            (\d{4})                                 ## 4 numbers
-        )""", re.VERBOSE | re.MULTILINE)  
+    def remove_supplementary_sentence(article_original: List[str]) -> List[str]:
+        ## e.g. "/광주시양궁협회 제공"
+        ## But, it may be an important sentence... (e.g. id="334957827")
+        supplementary_sentence_pattern = re.compile(r"^\s?[▶|\/][.]*", re.MULTILINE)
 
         texts = "\n".join(article_original)
-        texts = phone_pattern.sub("", texts)
-
+        texts = supplementary_sentence_pattern.sub("", texts)
+        
         return texts.split("\n")
 
 
@@ -144,34 +138,16 @@ class CleanNewspaperArticleBase():
         ## Remove functions.
         texts = CleanNewspaperArticleBase.remove_reporter_info(texts)
         texts = CleanNewspaperArticleBase.remove_url(texts)
+        texts = CleanNewspaperArticleBase.remove_phone_number(texts)
         # texts = CleanNewspaperArticleBase.remove_supplementary_sentence(texts)
-        texts = CleanNewspaperArticleBase.remove_brack_sentence(texts)
+        # texts = CleanNewspaperArticleBase.remove_brack_sentence(texts)
 
         ## Replace functions.
-        texts = CleanNewspaperArticleBase.replace_phone_number(texts)
-        texts = CleanNewspaperArticleBase.replace_start_with_hyphen(texts)
-        texts = CleanNewspaperArticleBase.replace_universal_apostrophe(texts)
-        texts = CleanNewspaperArticleBase.replace_repeated_apostrophe(texts)
+        # texts = CleanNewspaperArticleBase.replace_start_with_hyphen(texts)
+        # texts = CleanNewspaperArticleBase.replace_universal_apostrophe(texts)
+        # texts = CleanNewspaperArticleBase.replace_repeated_apostrophe(texts)
 
         return texts
-
-
-# class CleanLegalDocument():
-    
-#     def __init__(
-#         self,
-#     ):
-#         super(CleanLegalDocument, self).__init__()
-#         pass
-
-
-# class CleanEditorialJournal():
-    
-#     def __init__(
-#         self,
-#     ):
-#         super(CleanEditorialJournal, self).__init__()
-#         pass
 
 
 class CleanNewspaperArticle():
@@ -612,9 +588,9 @@ class CleanNewspaperArticle():
         ## We cannot be sure that the distribution of the training data domain set and
         ## the validation & test data domain sets are the same.
         ## We should be able to handle even the first seen "media_name". :(
-        func = self.media_name_to_function.get(media_name)
-        if func != None:
-            texts = func(texts)
+        # func = self.media_name_to_function.get(media_name)
+        # if func != None:
+        #     texts = func(texts)
 
         ## Apply common regex after customized cleaner.
         texts = [i.strip() for i in texts if i.strip() != ""]

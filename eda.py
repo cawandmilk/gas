@@ -88,9 +88,9 @@ def main(config):
     print_config(vars(config))
 
     ## Parse original samples.
-    # tr_corpus = read_samples(config.raw_train_path)
+    tr_corpus = read_samples(config.raw_train_path)
     # vl_corpus = read_samples(config.raw_valid_path)
-    ts_corpus = read_samples(config.raw_test_path)
+    # ts_corpus = read_samples(config.raw_test_path)
 
     # def _get_media_names(corpus: list, key: str = "media_name") -> list:
     #     return np.array([i.get("media_name") for i in corpus if i.get("media_name") != None])
@@ -134,30 +134,30 @@ def main(config):
 
 
     ## We need to eda in 'train corpus', not 'valid' or 'test' corpus.
-    # for category in ["사설잡지", "신문기사"]:
-    #     splited_documents = {}
+    for category in ["신문기사"]:
+        splited_documents = {}
 
-    #     for document in tr_corpus[category]:
-    #         media_name = document.get("media_name")
-    #         ## If the 'key' is already in 'splited_documents'...
-    #         if splited_documents.get(media_name) != None:
-    #             ## Just append to list.
-    #             splited_documents[media_name].append(document)
-    #         else:
-    #             ## Add key-value as list.
-    #             splited_documents[media_name] = [document]
+        for document in tr_corpus[category]:
+            media_name = document.get("media_name")
+            ## If the 'key' is already in 'splited_documents'...
+            if splited_documents.get(media_name) != None:
+                ## Just append to list.
+                splited_documents[media_name].append(document)
+            else:
+                ## Add key-value as list.
+                splited_documents[media_name] = [document]
 
-    #     ## Save by 'media_name'.
-    #     save_path = Path(config.data, "split", category)
-    #     save_path.mkdir(parents=True, exist_ok=True)
+        ## Save by 'media_name'.
+        save_path = Path(config.data, "split", category)
+        save_path.mkdir(parents=True, exist_ok=True)
 
-    #     for media_name in splited_documents.keys():
-    #         with open(save_path / Path(media_name + ".json"), "w", encoding="utf-8") as f:
-    #             json.dump(splited_documents[media_name], f, indent=4, ensure_ascii=False)
+        for media_name in splited_documents.keys():
+            with open(save_path / Path(media_name + ".json"), "w", encoding="utf-8") as f:
+                json.dump(splited_documents[media_name], f, indent=4, ensure_ascii=False)
 
-    save_path = Path(config.raw_test_path, "new_test_.json")
-    with open(save_path, "w", encoding="utf-8") as f:
-        json.dump(ts_corpus, f, indent=4, ensure_ascii=False)
+    # save_path = Path(config.raw_test_path, "new_test_.json")
+    # with open(save_path, "w", encoding="utf-8") as f:
+    #     json.dump(ts_corpus, f, indent=4, ensure_ascii=False)
 
 
 if __name__ == "__main__":

@@ -19,19 +19,47 @@ def define_argparser():
     p.add_argument(
         "--raw_train",
         required=True,
+        help=" ".join([
+            "The name to be saved as training *.tsv file.",
+            "The column will contains [id, text, summary]."
+            "(ex: ./data/raw/Training)",
+        ]),
     )
     p.add_argument(
         "--raw_valid",
         required=True,
+        help=" ".join([
+            "The name to be saved as validate *.tsv file.",
+            "The column will contains [id, text, summary]."
+            "(ex: ./data/raw/Validation)",
+        ]),
     )
     p.add_argument(
         "--raw_test",
         required=True,
+        help=" ".join([
+            "The name to be saved as test *.tsv file.",
+            "The column will contains [id, text]."
+            "(ex: ./data/raw/Test)",
+        ]),
     )
     p.add_argument(
         "--data",
         type=str,
         default="data",
+        help=" ".join([
+            "This is the directory where preprocessed tsv files will be saved.",
+            "Default=%(default)s",
+        ]),
+    )
+    p.add_argument(
+        "--clean",
+        action="store_true",
+        help=" ".join([
+            "Whether to proceed with text cleaning. Preprocessing only occurs",
+            "on the input text, not on the output summary.",
+            "Default=%(default)s",
+        ]),
     )
     
     config = p.parse_args()
@@ -54,18 +82,23 @@ def read_samples(raw_path: list, sort_dicts: bool = True) -> list:
     ## Empty list.
     documents = []
 
+    ## Get datasets.
     for sample in Path(raw_path).glob("*.json*"):
-        ## Backdoor.
-        if not Path(sample).name.endswith(".jsonl") and not Path(sample).name.startswith("신문기사"):
-            continue
-
-        if str(sample).endswith(".json"):
+        ## We only use "신문기사" dataset in total trainin & validation sets.
+        if Path(sample).name.startswith("신문기사"):
             documents += _read_json(sample)
-        elif str(sample).endswith(".jsonl"):
+            break
+
+        ## We only allow "*.jsonl" file in test set.
+        elif Path(sample).name.endswith(".jsonl"):
             documents += _read_jsonl(sample)
+            break
+
         else:
-            ## We only allow json, jsonl files.
-            raise AssertionError(f"Only '*.json' and '*.jsonl' files allowed: not :{sample}")
+            continue
+    
+    if documents == []:
+        raise AssertionError(f"Raw path has no '*.json' or '*.jsonl' file: {raw_path}")
 
     ## Sort by ids.
     if sort_dicts:
@@ -89,14 +122,19 @@ def extract_lines(config, documents: List[Dict]) -> dict:
             id = document["id"]
 
             text = [line["sentence"].replace("\n", " ").strip() for line in itertools.chain(*document["text"])]
-            ## assert document["media_name"] in cleaner.media_name_to_function.keys(), f"Unknown media name: {document['media_name']}"
-            text = " ".join(cleaner(text, document["media_name"]))
+            if config.clean:
+                text = cleaner(text, document["media_name"])
+            text = " ".join(text)
 
             summary = document["abstractive"][0].replace("\n", " ").strip()
 
             ## If a document is total-advertisement, it can be skipped.
             ## Like "id" == "362852732", no abstractive summaries exists.
             if text == "" or summary == "":
+                continue
+
+            ## Wrong preprocessed article. (무등일보)
+            if id == "338143341":
                 continue
 
             ## Gather all.
@@ -112,7 +150,9 @@ def extract_lines(config, documents: List[Dict]) -> dict:
 
             text = [line.replace("\n", " ").strip() for line in document["article_original"]]
             ## assert document["media"] in cleaner.media_name_to_function.keys()
-            text = " ".join(cleaner(text, document["media"]))
+            if config.clean:
+                text = cleaner(text, document["media"])
+            text = " ".join(text)
 
             if text == "":
                 raise AssertionError(f"'text' must not be empty: id={id}")

@@ -1,0 +1,62 @@
+(venv) $ python summarize.py --help
+usage: summarize.py [-h] --model_fpath MODEL_FPATH --test TEST
+                    [--gpu_id GPU_ID] [--batch_size BATCH_SIZE]
+                    [--beam_size BEAM_SIZE] [--length_penalty LENGTH_PENALTY]
+                    [--no_repeat_ngram_size NO_REPEAT_NGRAM_SIZE]
+                    [--inp_max_len INP_MAX_LEN] [--tar_max_len TAR_MAX_LEN]
+                    [--var_len]
+                    [--sample_submission_path SAMPLE_SUBMISSION_PATH]
+                    [--submission_path SUBMISSION_PATH]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --model_fpath MODEL_FPATH
+                        The path to the pytorch model checkpoint (*.pth) or
+                        Huggingface Model checkpoint directory (should contain
+                        the pytorch_model.bin file as a child). (ex1.
+                        ./ckpt/{YYYYmmDD-HHMMSS}/checkpoint-10590) (ex2:
+                        ./ckpt/{YYYYmmDD-HHMMSS}/{SOME_MODEL_PATH}.pth)
+  --test TEST           Test *.tsv file name including columns named [id,
+                        text]. (ex: ./data/test.tsv) Default=None
+  --gpu_id GPU_ID       The GPU number you want to use for inference. Only
+                        single GPU can be used, -1 means inference on CPU.
+                        Default=-1
+  --batch_size BATCH_SIZE
+                        The batch size used for inference. In general, a value
+                        slightly larger than the batch size used for training
+                        is acceptable. Default=32
+  --beam_size BEAM_SIZE
+                        Number of beams for beam search. 1 means no beam
+                        search. Default=5
+  --length_penalty LENGTH_PENALTY
+                        Exponential penalty to the length. If it is greater
+                        than 1, long sentences are generated, and if it is
+                        less than 1, the generation proceeds toward shorter
+                        sentences. Default=0.8
+  --no_repeat_ngram_size NO_REPEAT_NGRAM_SIZE
+                        The n-grams penalty makes sure that no n-gram appears
+                        twice by manually setting the probability of next
+                        words that could create an already seen n-gram to 0.
+                        Default=3
+  --inp_max_len INP_MAX_LEN
+                        Maximum length of tokenized input. Default=1024
+  --tar_max_len TAR_MAX_LEN
+                        Maximum length of tokenized output (=summary). The
+                        minimum length is set to 1/4 of tar_max_len. If the
+                        maximum allowable length is too small, the sentence
+                        may not be completed and may break in the middle.
+                        Default=256
+  --var_len             Whether to allow the generation of variable-length
+                        summaries according to the average input length in
+                        batch units. If the value is true, the summaries have
+                        values from min(64, int(avg_len_per_batch * 0.05)) to
+                        min(256, int(avg_len_per_batch * 0.15)). Naturally,
+                        the input test data will be sorted by length in
+                        advance. Default=False
+  --sample_submission_path SAMPLE_SUBMISSION_PATH
+                        The path to the example answer file you want to
+                        reference.
+                        Default=data/raw/Test/new_sample_submission.csv
+  --submission_path SUBMISSION_PATH
+                        This is where the correct answers for submission,
+                        including summaries, are stored. Default=submission

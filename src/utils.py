@@ -87,5 +87,3 @@ def save_predictions(sample_submission_path: Path, predictions: list, save_to: P
     ## Save.
     save_to.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(save_to, index=False)
-
-    return save_to
