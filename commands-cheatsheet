@@ -44,10 +44,11 @@ python finetune_plm_hftrainer.py \
 ## Inference.
 python summarize.py \
     --test ./data/test.tsv \
-    --model_fpath ./ckpt/20211208-144727/checkpoint-12708 \
+    --model_fpath ./ckpt/20211209-125836/hft.gogamza.kobart-base-v1.bs-16*2*8.lr-5e-5.wd-1e-2.warmup-2.adamw.pth \
     --gpu_id 0 \
     --length_penalty 0.8 \
-    --batch_size 64
+    --batch_size 64 \
+    --var_len
 
 ## Auto-submission API.
 wget -O dacon_submit_api-0.0.4-py3-none-any.zip https://bit.ly/3gMPScE
