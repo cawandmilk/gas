@@ -70,7 +70,7 @@ def define_argparser():
     p.add_argument(
         "--length_penalty",
         type=float,
-        default=0.8,
+        default=1.0,
         help=" ".join([
             "Exponential penalty to the length. If it is greater than 1,",
             "long sentences are generated, and if it is less than 1, the",
@@ -273,7 +273,7 @@ def main(config):
             *Path(config.model_fpath).name.split(".")[:-1],     ## moel_fpath
             f"LP-{config.length_penalty:.1f}",                  ## length penalty
             f"{'' if config.var_len else 'no-'}var-len",
-            f"{'best' if Path(config.model_fpath).is_dir() else 'latest'}",
+            f"{'latest' if Path(config.model_fpath).is_dir() else 'best'}",
             "csv",
         ]),
     )

@@ -155,7 +155,7 @@ def define_argparser():
     p.add_argument(
         "--tar_max_len", 
         type=int, 
-        default=256,
+        default=512,
         help=" ".join([
             "A value for slicing the output data. It is used for model inference.",
             "if the value is too small, the summary may be truncated before completion.",

@@ -62,4 +62,4 @@ optional arguments:
                         A value for slicing the output data. It is used for
                         model inference. if the value is too small, the
                         summary may be truncated before completion.
-                        Default=256
+                        Default=512
