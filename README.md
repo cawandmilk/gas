@@ -52,7 +52,9 @@ $ tree ./data
 ```bash
 $ python -m venv venv
 $ source ./venv/bin/activate
-(venv) $ pip install -r rquirements.txt
+(venv) $ pip install --upgrade pip
+(venv) $ pip install torch==1.10.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+(venv) $ pip install -r requirements.txt
 ```
 
 
@@ -72,9 +74,9 @@ $ source ./venv/bin/activate
 ```bash
 $ wc -l ./data/*.tsv
      6597 ./data/test.tsv
-   271086 ./data/train.tsv
+   271089 ./data/train.tsv
     30123 ./data/valid.tsv
-   307806 total
+   307809 total
 ```
 
 
@@ -103,7 +105,7 @@ $ wc -l ./data/*.tsv
 ```bash
 (venv) $ python summarize.py \
     --test ./data/test.tsv \
-    --model_fpath ./ckpt/20211205-164445/model.pth \
+    --model_fpath ./ckpt/20211207-192805/model.pth \
     --gpu_id 0 \
     --length_penalty 0.8 \
     --batch_size 64
