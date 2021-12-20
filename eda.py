@@ -65,11 +65,11 @@ def read_samples(raw_path: list, sort_dicts: bool = True) -> dict:
     #         )
 
     for sample in Path(raw_path).glob("*.json*"):
-        if not str(sample).endswith(".jsonl"):
+        if not (str(sample).endswith(".json") and sample.name.startswith("신문기사")):
             continue
             ## raise AssertionError(f"Only '*.json' and '*.jsonl' files allowed: not :{sample}")
 
-        documents = _read_jsonl(sample)
+        documents = _read_json(sample)
 
         ## Sort by ids.
         if sort_dicts:
@@ -134,25 +134,24 @@ def main(config):
 
 
     ## We need to eda in 'train corpus', not 'valid' or 'test' corpus.
-    for category in ["신문기사"]:
-        splited_documents = {}
+    splited_documents = {}
 
-        for document in tr_corpus[category]:
-            media_name = document.get("media_name")
-            ## If the 'key' is already in 'splited_documents'...
-            if splited_documents.get(media_name) != None:
-                ## Just append to list.
-                splited_documents[media_name].append(document)
-            else:
-                ## Add key-value as list.
-                splited_documents[media_name] = [document]
+    for document in tr_corpus:
+        media_name = document.get("media_name")
+        ## If the 'key' is already in 'splited_documents'...
+        if splited_documents.get(media_name) != None:
+            ## Just append to list.
+            splited_documents[media_name].append(document)
+        else:
+            ## Add key-value as list.
+            splited_documents[media_name] = [document]
 
-        ## Save by 'media_name'.
-        save_path = Path(config.data, "split", category)
-        save_path.mkdir(parents=True, exist_ok=True)
+    ## Save by 'media_name'.
+    save_path = Path(config.data, "split", "신문기사")
+    save_path.mkdir(parents=True, exist_ok=True)
 
-        for media_name in splited_documents.keys():
-            with open(save_path / Path(media_name + ".json"), "w", encoding="utf-8") as f:
+    for media_name in splited_documents.keys():
+        with open(save_path / Path(media_name + ".json"), "w", encoding="utf-8") as f:
                 json.dump(splited_documents[media_name], f, indent=4, ensure_ascii=False)
 
     # save_path = Path(config.raw_test_path, "new_test_.json")
